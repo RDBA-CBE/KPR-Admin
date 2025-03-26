@@ -216,7 +216,7 @@ const FinancialResult = () => {
     };
 
     const yearOptions = [];
-    for (let year = 2001; year <= 2026; year++) {
+    for (let year = 2001; year <= 2030; year++) {
         yearOptions.push({ value: year, label: year.toString() });
     }
 
@@ -260,7 +260,7 @@ const FinancialResult = () => {
                 {/* <Select placeholder="Select Year" value={state.yearSection} onChange={(val) => setState({ yearSection: val, yearError: '' })} options={yearOptions} isSearchable={true} /> */}
                 {state.selectedTab !== 3 && state.selectedTab !== 4 && (
                     <div>
-                        <button type="button" className="btn bg-[#642a10] text-white  w-full md:mb-0 md:w-auto" onClick={() => setState({ isOpen: true, update: false, name: '' })}>
+                        <button type="button" className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto" onClick={() => setState({ isOpen: true, update: false, name: '' })}>
                             + Create
                         </button>
                     </div>
@@ -423,7 +423,7 @@ const FinancialResult = () => {
                                             ) : (
                                                 <input
                                                     type="file"
-                                                    className="rtl:file-ml-5 form-input p-0 file:border-0 file:bg-[#642a10] text-white  file:px-4 file:py-2 file:font-semibold file:text-white file:hover:bg-[#642a10] ltr:file:mr-5"
+                                                    className="rtl:file-ml-5 form-input p-0 text-white file:border-0 file:bg-[#642a10]  file:px-4 file:py-2 file:font-semibold file:text-white file:hover:bg-[#642a10] ltr:file:mr-5"
                                                     accept=""
                                                     onChange={(e) => handleFileChange(e, index)}
                                                 />
@@ -461,7 +461,7 @@ const FinancialResult = () => {
                             )}
 
                             <div className="flex justify-end">
-                                <button type="submit" className="btn bg-[#642a10] text-white  !mt-6">
+                                <button type="submit" className="btn !mt-6 bg-[#642a10]  text-white">
                                     {state.loading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
                                 </button>
                             </div>
