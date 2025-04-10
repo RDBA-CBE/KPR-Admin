@@ -370,7 +370,7 @@ const FinancialResults = () => {
                 </div>
             </div>
             <div className="z-10 mt-5 grid w-full grid-cols-12 gap-3">
-                <div className="z-10 col-span-3 col-start-10 flex justify-end">
+            <div className="z-10 col-span-12 lg:col-span-3 lg:col-start-10 flex justify-end">
                     <Select
                         placeholder="Filter by year"
                         value={state.filterYear}

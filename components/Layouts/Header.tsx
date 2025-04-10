@@ -168,7 +168,6 @@ const Header = () => {
 
     const signOutClick = () => {
         localStorage.removeItem('token');
-
         router.replace('/signin');
     };
     return (
