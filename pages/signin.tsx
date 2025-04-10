@@ -43,21 +43,16 @@ const LoginBoxed = () => {
         e.preventDefault();
         try {
             setLoading(true);
-            if (formData?.userName == ''  ) {
+            if (formData?.userName == '') {
                 Failure('Enter user name');
                 setLoading(false);
-            } 
-            
-            else if(formData?.password == ''){
+            } else if (formData?.password == '') {
                 Failure('Enter password');
                 setLoading(false);
-            }
-
-            else if(formData?.userName == '' && formData?.password == ''){
+            } else if (formData?.userName == '' && formData?.password == '') {
                 Failure('Enter user name and password');
                 setLoading(false);
-            }
-            else {
+            } else {
                 const body = {
                     username: formData?.userName,
                     password: formData?.password,
@@ -72,7 +67,12 @@ const LoginBoxed = () => {
                 router.replace({
                     pathname: '/',
                     query: { menuId: 1 }, // Sending query params
-                  });
+                });
+                const clean:any = {
+                    userName: '',
+                    password: '',
+                };
+                setFormData(clean);
                 setLoading(false);
             }
         } catch (error) {
@@ -82,8 +82,7 @@ const LoginBoxed = () => {
 
                 console.log('error: ', error);
             }
-        setLoading(false);
-
+            setLoading(false);
         }
     };
 

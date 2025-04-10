@@ -18,6 +18,7 @@ import Notiflix from 'notiflix';
 import { Loading } from 'notiflix/build/notiflix-loading-aio';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import Models from '@/src/imports/models.import';
+import IconPlayCircle from '@/components/Icon/IconPlayCircle';
 
 const PolicyInfo = () => {
     const router = useRouter();
@@ -322,6 +323,7 @@ const PolicyInfo = () => {
                 const fileName = item?.file.split('/').pop();
 
                 return {
+                    fileUrl: item,
                     id: item?.id,
                     subtitle: item?.name,
                     file: {
@@ -395,25 +397,29 @@ const PolicyInfo = () => {
                             columns={[
                                 { accessor: 'title', title: 'Title' },
                                 { accessor: 'year' },
-
                                 {
                                     accessor: 'link',
                                     title: 'Link',
-                                    render: (item: any) =>
-                                        item?.files?.map((item) => (
-                                            <div className="flex flex-row ">
-                                                {item['file-pdf-cfdb7_file']?.endsWith('.mp3') ? (
-                                                    <a href={item['file-pdf-cfdb7_file']} target="_blank" rel="noopener noreferrer">
-                                                        Concall
-                                                    </a>
-                                                ) : (
-                                                    <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                                                        <Image src={pdf} width={30} height={30} alt="Picture of the author" />
-                                                        {item?.name}
-                                                    </a>
-                                                )}
-                                            </div>
-                                        )),
+                                    width: 400,
+                                    render: (item: any) => (
+                                        <div className="flex flex-row flex-wrap gap-4">
+                                            {item?.files?.map((fileItem: any, index: number) => (
+                                                <div key={index} className="flex items-center gap-2">
+                                                    {fileItem?.file?.endsWith('.mp3') ? (
+                                                        <a href={fileItem?.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                            <IconPlayCircle />
+                                                            {fileItem?.name}
+                                                        </a>
+                                                    ) : (
+                                                        <a href={fileItem.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                            <Image src={pdf} width={30} height={30} alt="PDF icon" />
+                                                            {fileItem?.name}
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ),
                                 },
                                 {
                                     accessor: 'actions',
@@ -554,7 +560,12 @@ const PolicyInfo = () => {
                                                     onChange={(e) => handleNameChange(e, index)}
                                                 />
                                                 {item.file && (
-                                                    <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                    <a
+                                                        href={item?.fileUrl?.file ? item?.fileUrl?.file : URL.createObjectURL(item?.file)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-2"
+                                                    >
                                                         <IconEye />
                                                     </a>
                                                 )}

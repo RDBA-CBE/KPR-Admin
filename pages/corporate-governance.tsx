@@ -17,6 +17,7 @@ import Swal from 'sweetalert2';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import { useRouter } from 'next/router';
 import Models from '@/src/imports/models.import';
+import IconPlayCircle from '@/components/Icon/IconPlayCircle';
 
 const CorporateGovernance = () => {
     const router = useRouter();
@@ -298,6 +299,7 @@ const CorporateGovernance = () => {
                 const fileName = item?.file.split('/').pop();
 
                 return {
+                    fileUrl: item,
                     id: item?.id,
                     subtitle: item?.name,
                     file: {
@@ -356,21 +358,26 @@ const CorporateGovernance = () => {
                         {
                             accessor: 'link',
                             title: 'Link',
-                            render: (item: any) =>
-                                item?.files?.map((item) => (
-                                    <div className="flex flex-row ">
-                                        {item?.file?.endsWith('.mp3') ? (
-                                            <a href={item?.file} target="_blank" rel="noopener noreferrer">
-                                                Concall
-                                            </a>
-                                        ) : (
-                                            <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                                                <Image src={pdf} width={30} height={30} alt="Picture of the author" />
-                                                {item?.name}
-                                            </a>
-                                        )}
-                                    </div>
-                                )),
+                            width: 400,
+                            render: (item: any) => (
+                                <div className="flex flex-row flex-wrap gap-4">
+                                    {item?.files?.map((fileItem: any, index: number) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            {fileItem?.file?.endsWith('.mp3') ? (
+                                                <a href={fileItem?.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                    <IconPlayCircle />
+                                                    {fileItem?.name}
+                                                </a>
+                                            ) : (
+                                                <a href={fileItem.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                    <Image src={pdf} width={30} height={30} alt="PDF icon" />
+                                                    {fileItem?.name}
+                                                </a>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ),
                         },
 
                         {
@@ -513,7 +520,12 @@ const CorporateGovernance = () => {
                                                 onChange={(e) => handleNameChange(e, index)}
                                             />
                                             {item.file && (
-                                                <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                <a
+                                                    href={item?.fileUrl?.file ? item?.fileUrl?.file : URL.createObjectURL(item?.file)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2"
+                                                >
                                                     <IconEye />
                                                 </a>
                                             )}

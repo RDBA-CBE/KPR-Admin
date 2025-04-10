@@ -18,6 +18,7 @@ import Swal from 'sweetalert2';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import Models from '@/src/imports/models.import';
 import fs from 'fs';
+import IconPlayCircle from '@/components/Icon/IconPlayCircle';
 
 const FinancialResults = () => {
     const router = useRouter();
@@ -298,6 +299,7 @@ const FinancialResults = () => {
                 year: state.filterYear?.value,
             };
             const res: any = await Models.auth.document_list(state.selectedMenu, body);
+            console.log('✌️res --->', res);
             setState({ tableLoading: false, tableList: res?.results });
         } catch (error) {
             setState({ tableLoading: false });
@@ -312,6 +314,7 @@ const FinancialResults = () => {
                 const fileName = item?.file.split('/').pop();
 
                 return {
+                    fileUrl: item,
                     id: item?.id,
                     subtitle: item?.name,
                     file: {
@@ -334,6 +337,7 @@ const FinancialResults = () => {
             console.log('✌️error --->', error);
         }
     };
+    console.log('✌️files --->', state.files);
 
     return (
         <>
@@ -407,21 +411,26 @@ const FinancialResults = () => {
                             {
                                 accessor: 'link',
                                 title: 'Link',
-                                render: (item: any) =>
-                                    item?.files?.map((item) => (
-                                        <div className="flex flex-row ">
-                                            {item['file-pdf-cfdb7_file']?.endsWith('.mp3') ? (
-                                                <a href={item['file-pdf-cfdb7_file']} target="_blank" rel="noopener noreferrer">
-                                                    Concall
-                                                </a>
-                                            ) : (
-                                                <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                                                    <Image src={pdf} width={30} height={30} alt="PDF icon" />
-                                                    {item?.name}
-                                                </a>
-                                            )}
-                                        </div>
-                                    )),
+                                width: 400,
+                                render: (item: any) => (
+                                    <div className="flex flex-row flex-wrap gap-4">
+                                        {item?.files?.map((fileItem: any, index: number) => (
+                                            <div key={index} className="flex items-center gap-2">
+                                                {fileItem?.file?.endsWith('.mp3') ? (
+                                                    <a href={fileItem?.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                        <IconPlayCircle />
+                                                        {fileItem?.name}
+                                                    </a>
+                                                ) : (
+                                                    <a href={fileItem.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                        <Image src={pdf} width={30} height={30} alt="PDF icon" />
+                                                        {fileItem?.name}
+                                                    </a>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ),
                             },
                             {
                                 accessor: 'actions',
@@ -541,7 +550,7 @@ const FinancialResults = () => {
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                                         Files <span className="text-red-500">*</span>
                                     </label>
-                                    {state.files.map((item, index) => (
+                                    {state.files?.map((item, index) => (
                                         <div key={index} className={`mb-3 flex items-center space-x-2`}>
                                             {item.file ? (
                                                 <div>{item.file.name}</div>
@@ -563,7 +572,12 @@ const FinancialResults = () => {
                                                 onChange={(e) => handleNameChange(e, index)}
                                             />
                                             {item.file && (
-                                                <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                <a
+                                                    href={item?.fileUrl?.file ? item?.fileUrl?.file : URL.createObjectURL(item?.file)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2"
+                                                >
                                                     <IconEye />
                                                 </a>
                                             )}

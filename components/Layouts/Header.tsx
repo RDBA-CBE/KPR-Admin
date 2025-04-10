@@ -41,7 +41,7 @@ const Header = () => {
     const [user, setUser] = useState({ email: '', name: '' });
 
     useEffect(() => {
-        const Token: any = localStorage.getItem('kprToken');
+        const Token: any = localStorage.getItem('token');
         setToken(Token);
         const UserEmail = localStorage.getItem('userEmail');
         const UserName = localStorage.getItem('userName');
@@ -167,7 +167,7 @@ const Header = () => {
     const { t, i18n } = useTranslation();
 
     const signOutClick = () => {
-        localStorage.removeItem('kprToken');
+        localStorage.removeItem('token');
 
         router.replace('/signin');
     };
@@ -493,10 +493,11 @@ const Header = () => {
                                         </li>
                                     ) : (
                                         <li className="border-t border-white-light dark:border-white-light/10">
-                                            <Link href="/auth/boxed-signin" className="!py-3 text-danger">
+                                            <Link href="/signin" className="!py-3 text-danger">
                                                 <IconUserPlus className="h-4.5 w-4.5 shrink-0  ltr:mr-2 rtl:ml-2" />
                                                 Login / Register
                                             </Link>
+                                            
                                         </li>
                                     )}
                                 </ul>
