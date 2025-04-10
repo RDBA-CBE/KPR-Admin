@@ -31,6 +31,8 @@ import IconMenuUsers from '@/components/Icon/Menu/IconMenuUsers';
 import IconMenuPages from '@/components/Icon/Menu/IconMenuPages';
 import IconMenuAuthentication from '@/components/Icon/Menu/IconMenuAuthentication';
 import IconMenuDocumentation from '@/components/Icon/Menu/IconMenuDocumentation';
+import { useSetState } from '@/utils/functions';
+import Models from '@/src/imports/models.import';
 
 const Sidebar = () => {
     const router = useRouter();
@@ -42,6 +44,28 @@ const Sidebar = () => {
         setCurrentMenu((oldValue) => {
             return oldValue === value ? '' : value;
         });
+    };
+
+    const [state, setState] = useSetState({
+        menuList: [],
+        loading: false,
+    });
+
+    useEffect(() => {
+        getMainMenu();
+    }, []);
+
+    const getMainMenu = async () => {
+        try {
+            setState({ loading: true });
+            const res: any = await Models.auth.main_menu();
+            console.log('menuList --->', res);
+            setState({ menuList: res?.results, loading: false });
+        } catch (error) {
+            setState({ loading: false });
+
+            console.log('✌️error --->', error);
+        }
     };
 
     useEffect(() => {
@@ -84,7 +108,6 @@ const Sidebar = () => {
 
     const dispatch = useDispatch();
     const { t } = useTranslation();
-    const [menuOpen, setMenuOpen] = useState(false);
 
     return (
         <div className={semidark ? 'dark' : ''}>
@@ -93,7 +116,7 @@ const Sidebar = () => {
             >
                 <div className="h-full bg-white dark:bg-black">
                     <div className="flex items-center justify-center px-4 py-3">
-                        <Link href="/financial-result" className="main-logo flex shrink-0 items-center">
+                        <Link href="/?menuId=1" className="main-logo flex shrink-0 items-center">
                             <img className=" h-[75px] flex-none object-cover" src="/assets/images/logo.png" alt="logo" />
                         </Link>
 
@@ -109,17 +132,26 @@ const Sidebar = () => {
                         <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
                             <li className="nav-item">
                                 <ul>
-                                    <li className="nav-item">
-                                        <Link href="/financial-result" className="group">
-                                            <div className="flex items-center">
-                                                <IconMenuChat className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Financial Results')}</span>
-                                            </div>
-                                            <div className={'-rotate-90 rtl:rotate-90'}>
-                                                <IconCaretDown />
-                                            </div>
-                                        </Link>
-                                    </li>
+                                    {state.menuList?.map((item, index) => (
+                                        <li className="nav-item">
+                                            <Link
+                                                href={{
+                                                    pathname: item?.slug, // Target path
+                                                    query: { menuId: item?.id }, // Sending query parameters
+                                                }}
+                                                className="group"
+                                            >
+                                                <div className="flex items-center">
+                                                    <IconMenuChat className="shrink-0 group-hover:!text-primary" />
+                                                    <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t(item?.name)}</span>
+                                                </div>
+                                                {/* <div className={'-rotate-90 rtl:rotate-90'}>
+                                                    <IconCaretDown />
+                                                </div> */}
+                                            </Link>
+                                        </li>
+                                    ))}
+
                                     {/* <li className="menu nav-item">
                                         <button
                                             type="button"
@@ -173,7 +205,7 @@ const Sidebar = () => {
                                         </AnimateHeight> */}
                                     {/* </li> */}
 
-                                    <li className="nav-item">
+                                    {/* <li className="nav-item">
                                         <Link href="/share-holding-pattern" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuChat className="shrink-0 group-hover:!text-primary" />
@@ -188,7 +220,7 @@ const Sidebar = () => {
                                                 <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Corporate Governance')}</span>
                                             </div>
                                         </Link>
-                                    </li>
+                                    </li> */}
                                     {/* 
                                     <li className="nav-item">
                                         <Link href="/shipping/shippingprovider" className="group">
@@ -198,7 +230,7 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li> */}
-                                    <li className="nav-item">
+                                    {/* <li className="nav-item">
                                         <Link href="/policy-info" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuChat className="shrink-0 group-hover:!text-primary" />
@@ -208,7 +240,7 @@ const Sidebar = () => {
                                                 <IconCaretDown />
                                             </div>
                                         </Link>
-                                    </li>
+                                    </li> */}
 
                                     {/* <li className="menu nav-item">
                                         <button type="button" className={`${currentMenu === 'Policy / Info' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('Policy / Info')}>

@@ -6,7 +6,7 @@ const PrivateRouter = (WrappedComponent:any) => {
     const router = useRouter();
 
     useEffect(() => {
-      const token = localStorage.getItem('kprToken');
+      const token = localStorage.getItem('token');
       if (!token) {
         const baseUrl = `${window.location.origin}/signin`;
         router.replace(baseUrl); // Redirect to login if no token is found

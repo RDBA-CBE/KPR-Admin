@@ -16,28 +16,21 @@ import IconLoader from '@/components/Icon/IconLoader';
 import IconEye from '@/components/Icon/IconEye';
 import Swal from 'sweetalert2';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import Models from '@/src/imports/models.import';
+import fs from 'fs';
 
-const FinancialResult = () => {
+const FinancialResults = () => {
     const router = useRouter();
-    const { path } = router.query;
-    console.log('path: ', path);
+
+    const { menuId } = router.query;
+
     const [state, setState] = useSetState({
         data: [],
         parsedData: [],
         page: 1,
         PAGE_SIZES: [10, 20, 30, 50, 100],
         pageSize: 10,
-        sidebar: [
-            'Annual Reports',
-            'Audited / Unaudited Results',
-            'Financials – Subsidiary Cos',
-            'Uploads',
-            'K.P.R.Profile Downloads',
-            'Appointment of Independent Directors',
-            'Voting Results of AGM and Postal Ballot',
-            'Company Information',
-            'Con-call Invitations and Transcript',
-        ],
+        sidebar: [],
         selectedTab: 0,
         loading: false,
         update: false,
@@ -50,129 +43,182 @@ const FinancialResult = () => {
         nameError: '',
         reference: '',
         subject: '',
+        selectedMenu: 1,
+        tableList: [],
+        updateId: '',
+        uploadedFiles: [],
+        filterYear: '',
     });
 
     useEffect(() => {
-        getData();
-    }, [state.selectedTab, path]);
+        getTableList();
+    }, [state.selectedTab, menuId, state.filterYear]);
 
     useEffect(() => {
-        if (path) {
-            setState({ selectedTab: Number(path) });
-        }
-    }, [path]);
+        getSubMenu();
+    }, [menuId]);
 
-    const getData = async () => {
+    const getSubMenu = async () => {
         try {
             setState({ loading: true });
-            const res = await axios.get('https://file.kprmilllimited.com/wp-json/custom-api/v1/cfdb-submissions');
-            console.log('res: ', res);
-            const separatedData = res?.data.reduce((acc, obj) => {
-                const formPostId = obj.form_post_id;
-                if (!acc[formPostId]) {
-                    acc[formPostId] = [];
-                }
-                acc[formPostId].push(obj);
-                return acc;
-            }, {});
-
-            const tabToFormPostId = {
-                0: '3650',
-                1: '3689',
-                2: '3757',
-                5: '3691',
-                6: '3756',
-                7: '3693',
-                8: '3694',
-            };
-
-            const formPostId = tabToFormPostId[state.selectedTab];
-            const datas = separatedData[formPostId];
-            const tableData =
-                datas?.map((item) => ({
-                    title: item.form_value?.title,
-                    link: transformData(item.form_value),
-                    id: item?.id,
-                    year: item?.form_value?.yearselection[0],
-                })) || [];
-            console.log('tableData: ', tableData);
-
-            setState({ parsedData: tableData, loading: false });
+            const res: any = await Models.auth.sub_menu(menuId);
+            setState({ sidebar: res?.results, loading: false });
         } catch (error) {
             setState({ loading: false });
+
+            console.log('✌️error --->', error);
         }
-    };
-
-    const assignId = () => {
-        const tabToFormPostId = {
-            0: '3650',
-            1: '3689',
-            2: '3757',
-            5: '3691',
-            6: '3756',
-            7: '3693',
-            8: '3694',
-        };
-
-        return tabToFormPostId[state.selectedTab] || '';
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setState({ loading: true });
-        if (state.name == '') {
-            setState({ nameError: 'Please enter title ', loading: false });
-            return;
-        }
+        try {
+            setState({ submitLoading: true });
 
-        if (state.yearSection == '') {
-            setState({ yearError: 'Please select year ', loading: false });
-            return;
-        }
-
-        for (const file of state.files) {
-            if (!file.file) {
-                setState({ errorMessage: 'Please upload a file ', loading: false });
-                return;
-            } else if (!file.subtitle) {
-                setState({ errorMessage: 'Please enter a name ', loading: false });
+            if (state.name == '') {
+                setState({ nameError: 'Please enter title ', submitLoading: false });
                 return;
             }
-        }
-        const formData = new FormData();
-        const outputArray = state.files.map((item, index) => {
-            return {
-                [`list${index + 1}`]: item.subtitle,
-                [`file-pdf-${index + 1}`]: item.file,
+
+            if (state.yearSection == '') {
+                setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            for (const file of state.files) {
+                if (!file.file) {
+                    setState({ errorMessage: 'Please upload a file ', submitLoading: false });
+                    return;
+                } else if (!file.subtitle) {
+                    setState({ errorMessage: 'Please enter a name ', submitLoading: false });
+                    return;
+                }
+            }
+            const outputArray = state.files.map((item, index) => {
+                return {
+                    name: item.subtitle,
+                    file: item.file,
+                };
+            });
+
+            const body = {
+                title: state.name,
+                year: state.yearSection?.value,
+                files: outputArray,
+                reference: state.reference,
+                subject: state.subject,
+                submenu: state.selectedMenu,
             };
-        });
-        console.log('outputArray: ', outputArray);
 
-        outputArray.forEach((item) => {
-            Object.keys(item).forEach((key) => {
-                formData.append(key, item[key]);
-            });
-        });
-        formData.append('title', state.name);
-        formData.append('ref', state.reference);
-        formData.append('sub', state.subject);
-        formData.append('yearselection', state.yearSection.label);
-        formData.append('_wpcf7', assignId());
-        formData.append('_wpcf7_unit_tag', 'wpcf7-f3650-p3651-o1');
+            const formData = new FormData();
 
-        try {
-            const token = localStorage.getItem('kprToken');
-            const res: any = await axios.post(`https://file.kprmilllimited.com/wp-json/contact-form-7/v1/contact-forms/${assignId()}/feedback`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    Authorization: `Bearer ${token}`,
-                },
+            formData.append('title', body.title);
+            formData.append('submenu', body.submenu);
+            formData.append('year', body.year);
+            formData.append('reference', body.reference);
+            formData.append('subject', body.subject);
+
+            outputArray.forEach((file, index) => {
+                formData.append(`files[${index}].file`, file?.file); // Append the file
+                formData.append(`files[${index}].name`, file.name); // Append the custom name or default to the file name
             });
-            setState({ isOpen: false, name: '', yearSection: '', files: [{ subtitle: '', file: null }], loading: false, nameError: '', yearError: '', reference: '', subject: '' });
-            getData();
-            Success(res?.data?.message);
+            const res = await Models.auth.add_document(formData);
+            getTableList();
+
+            setState({ submitLoading: false, isOpen: false, updateId: '' });
         } catch (error) {
-            setState({ loading: false });
+            setState({ submitLoading: false });
+            console.error('Error:', error);
+        }
+    };
+
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        try {
+            setState({ submitLoading: true });
+            if (state.name == '') {
+                setState({ nameError: 'Please enter title ', submitLoading: false });
+                return;
+            }
+
+            if (state.yearSection == '') {
+                setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            for (const file of state.files) {
+                if (!file.file) {
+                    setState({ errorMessage: 'Please upload a file ', submitLoading: false });
+                    return;
+                } else if (!file.subtitle) {
+                    setState({ errorMessage: 'Please enter a name ', submitLoading: false });
+                    return;
+                }
+            }
+
+            const withoutId = state.files.filter((item) => item.id === undefined);
+
+            const withId = state.files.filter((item) => item.id !== undefined);
+
+            const unmatched = withId.filter((item1) => {
+                const match = state.uploadedFiles.find((item2) => item2?.id === item1?.id);
+                return match && item1?.subtitle !== match?.subtitle;
+            });
+
+            if (unmatched?.length > 0) {
+                unmatched?.map(async (item, index) => {
+                    const body = {
+                        name: item.subtitle,
+                        file: item.file,
+                    };
+                    const res = await Models.auth.update_document_file(item?.id, body);
+                });
+            }
+
+            const body = {
+                title: state.name,
+                year: state.yearSection?.value,
+                reference: state.reference,
+                subject: state.subject,
+                submenu: state.selectedMenu,
+            };
+
+            const formData = new FormData();
+
+            formData.append('title', body.title);
+            formData.append('submenu', body.submenu);
+            formData.append('year', body.year);
+            formData.append('reference', body.reference);
+            formData.append('subject', body.subject);
+
+            if (withoutId?.length > 0) {
+                withoutId?.map(async (item, index) => {
+                    const body = {
+                        document: state.updateId,
+                        name: item.subtitle,
+                        file: item.file,
+                    };
+                    const res = await Models.auth.add_document_file(body);
+                    getTableList();
+                });
+            }
+            const res = await Models.auth.update_document(state.updateId, formData);
+            getTableList();
+            setState({
+                submitLoading: false,
+                isOpen: false,
+                updateId: '',
+                name: '',
+                nameError: '',
+                yearError: '',
+                yearSection: '',
+                files: [{ subtitle: '', file: null }],
+                errorMessage: '',
+                reference: '',
+                subject: '',
+            });
+        } catch (error) {
+            setState({ submitLoading: false });
             console.error('Error:', error);
         }
     };
@@ -192,10 +238,16 @@ const FinancialResult = () => {
         setState({ files: newFiles, errorMessage: '' });
     };
 
-    const handleRemove = (index, item) => {
-        const newFiles = [...state.files];
-        state.files.splice(index, 1);
-        setState({ files: state.files });
+    const handleRemove = async (index, item) => {
+        try {
+            if (item?.id) {
+                await Models.auth.delete_document_files(item?.id);
+            }
+            state.files.splice(index, 1);
+            setState({ files: state.files });
+        } catch (error) {
+            console.log('✌️error --->', error);
+        }
     };
 
     const handleAddFile = () => {
@@ -224,20 +276,8 @@ const FinancialResult = () => {
         showDeleteAlert(
             async () => {
                 try {
-                    const token = localStorage.getItem('kprToken');
-                    const config = {
-                        method: 'delete',
-                        url: `https://file.kprmilllimited.com/wp-json/cf7-api/v1/forms/${assignId()}/submissions/${record.id}`,
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            Authorization: `Bearer ${token}`,
-                        },
-                    };
-
-                    await axios.request(config);
-                    const filteredData = state.parsedData.filter((dataRecord) => dataRecord.id !== record.id);
-                    setState({ parsedData: filteredData });
-                    getData();
+                    const res = await Models.auth.delete_document(record?.id);
+                    getTableList();
 
                     Swal.fire('Deleted!', 'Your data has been deleted.', 'success');
                 } catch (error) {
@@ -251,6 +291,50 @@ const FinancialResult = () => {
         );
     };
 
+    const getTableList = async () => {
+        try {
+            setState({ tableLoading: true });
+            const body = {
+                year: state.filterYear?.value,
+            };
+            const res: any = await Models.auth.document_list(state.selectedMenu, body);
+            setState({ tableLoading: false, tableList: res?.results });
+        } catch (error) {
+            setState({ tableLoading: false });
+
+            console.log('✌️error --->', error);
+        }
+    };
+
+    const setTableData = async (row) => {
+        try {
+            const fileData = row?.files?.map((item) => {
+                const fileName = item?.file.split('/').pop();
+
+                return {
+                    id: item?.id,
+                    subtitle: item?.name,
+                    file: {
+                        name: fileName,
+                    },
+                };
+            });
+
+            setState({
+                isOpen: true,
+                files: fileData,
+                updateId: row?.id,
+                name: row?.title,
+                yearSection: { value: row?.year, label: row?.year },
+                reference: row?.reference,
+                subject: row?.subject,
+                uploadedFiles: fileData,
+            });
+        } catch (error) {
+            console.log('✌️error --->', error);
+        }
+    };
+
     return (
         <>
             <div className="panel mb-5 flex items-center justify-between gap-5">
@@ -258,26 +342,54 @@ const FinancialResult = () => {
                     <h5 className="text-lg font-semibold dark:text-white-light">Financial Result</h5>
                 </div>
                 {/* <Select placeholder="Select Year" value={state.yearSection} onChange={(val) => setState({ yearSection: val, yearError: '' })} options={yearOptions} isSearchable={true} /> */}
-                {state.selectedTab !== 3 && state.selectedTab !== 4 && (
-                    <div>
-                        <button type="button" className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto" onClick={() => setState({ isOpen: true, update: false, name: '' })}>
-                            + Create
-                        </button>
-                    </div>
-                )}
+                <div>
+                    <button
+                        type="button"
+                        className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto"
+                        onClick={() =>
+                            setState({
+                                isOpen: true,
+                                name: '',
+                                nameError: '',
+                                yearError: '',
+                                yearSection: '',
+                                files: [{ subtitle: '', file: null }],
+                                errorMessage: '',
+                                reference: '',
+                                subject: '',
+                                updateId: '',
+                            })
+                        }
+                    >
+                        + Create
+                    </button>
+                </div>
             </div>
+            <div className="z-10 mt-5 grid w-full grid-cols-12 gap-3">
+                <div className="z-10 col-span-3 col-start-10 flex justify-end">
+                    <Select
+                        placeholder="Filter by year"
+                        value={state.filterYear}
+                        onChange={(val) => setState({ filterYear: val, yearError: '' })}
+                        options={yearOptions}
+                        isSearchable={true}
+                        isClearable={true}
+                    />
+                </div>
+            </div>
+
             <div className="mt-5 grid w-full grid-cols-12 gap-3 ">
                 <div className="col-span-3 grid ">
                     <div>
                         {state.sidebar?.map((link, index) => (
                             <div
                                 key={index}
-                                onClick={() => setState({ selectedTab: index })}
+                                onClick={() => setState({ selectedTab: index, selectedMenu: link?.id })}
                                 className={`dark:hover:text-primary-dark border-1 cursor-pointer  border border-gray-300 px-4 py-2 ${
                                     state.selectedTab === index ? 'bg-[#642a10] text-white' : 'bg-white text-black'
                                 }`}
                             >
-                                <div className="text-md text-bold cursor-pointer text-sm">{link}</div>
+                                <div className="text-md text-bold cursor-pointer text-sm">{link?.name}</div>
                             </div>
                         ))}
                     </div>
@@ -285,8 +397,8 @@ const FinancialResult = () => {
                 <div className="datatables col-span-9 grid">
                     <DataTable
                         className="table-hover whitespace-nowrap"
-                        records={state.parsedData}
-                        fetching={state.loading}
+                        records={state.tableList}
+                        fetching={state.tableLoading}
                         customLoader={<Loader />}
                         columns={[
                             { accessor: 'title', title: 'Title' },
@@ -296,16 +408,16 @@ const FinancialResult = () => {
                                 accessor: 'link',
                                 title: 'Link',
                                 render: (item: any) =>
-                                    item?.link?.map((item) => (
+                                    item?.files?.map((item) => (
                                         <div className="flex flex-row ">
                                             {item['file-pdf-cfdb7_file']?.endsWith('.mp3') ? (
                                                 <a href={item['file-pdf-cfdb7_file']} target="_blank" rel="noopener noreferrer">
                                                     Concall
                                                 </a>
                                             ) : (
-                                                <a href={item['file-pdf-cfdb7_file']} target="_blank" rel="noopener noreferrer">
-                                                    <Image src={pdf} width={30} height={30} alt="Picture of the author" />
-                                                    Download
+                                                <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                    <Image src={pdf} width={30} height={30} alt="PDF icon" />
+                                                    {item?.name}
                                                 </a>
                                             )}
                                         </div>
@@ -316,11 +428,11 @@ const FinancialResult = () => {
                                 title: 'Actions',
                                 render: (row) => (
                                     <>
-                                        {/* <Tippy content="Edit">
-                                            <button type="button">
+                                        <Tippy content="Edit">
+                                            <button type="button" onClick={() => setTableData(row)}>
                                                 <IconPencil className="ltr:mr-2 rtl:ml-2" />
                                             </button>
-                                        </Tippy> */}
+                                        </Tippy>
                                         <Tippy content="Delete">
                                             <button type="button" onClick={() => deleteData(row)}>
                                                 <IconTrashLines />
@@ -331,7 +443,7 @@ const FinancialResult = () => {
                             },
                         ]}
                         highlightOnHover
-                        totalRecords={state.parsedData?.length}
+                        totalRecords={state.tableList?.length}
                         recordsPerPage={state.pageSize}
                         page={state.page}
                         onPageChange={(p) => setState({ page: p })}
@@ -347,12 +459,25 @@ const FinancialResult = () => {
                 </div>
             </div>
             <Modal
-                addHeader={`Add`}
+                addHeader={state.updateId ? 'Update' : `Add`}
                 open={state.isOpen}
-                close={() => setState({ isOpen: false, name: '', nameError: '', yearError: '', yearSection: '', files: [{ subtitle: '', file: null }], errorMessage: '', reference: '', subject: '' })}
+                close={() =>
+                    setState({
+                        isOpen: false,
+                        name: '',
+                        nameError: '',
+                        yearError: '',
+                        yearSection: '',
+                        files: [{ subtitle: '', file: null }],
+                        errorMessage: '',
+                        reference: '',
+                        subject: '',
+                        updateId: '',
+                    })
+                }
                 renderComponent={() => (
                     <div className=" p-5">
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={state.updateId ? handleUpdate : handleSubmit}>
                             <div className="">
                                 <div>
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
@@ -438,7 +563,7 @@ const FinancialResult = () => {
                                                 onChange={(e) => handleNameChange(e, index)}
                                             />
                                             {item.file && (
-                                                <a href={URL.createObjectURL(item.file)} target="_blank" rel="noopener noreferrer">
+                                                <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                                                     <IconEye />
                                                 </a>
                                             )}
@@ -462,7 +587,7 @@ const FinancialResult = () => {
 
                             <div className="flex justify-end">
                                 <button type="submit" className="btn !mt-6 bg-[#642a10]  text-white">
-                                    {state.loading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
+                                    {state.submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
                                 </button>
                             </div>
                         </form>
@@ -472,4 +597,4 @@ const FinancialResult = () => {
         </>
     );
 };
-export default PrivateRouter(FinancialResult);
+export default PrivateRouter(FinancialResults);

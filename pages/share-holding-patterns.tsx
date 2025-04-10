@@ -15,8 +15,14 @@ import IconEye from '@/components/Icon/IconEye';
 import Select from 'react-select';
 import Swal from 'sweetalert2';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import { useRouter } from 'next/router';
+import Models from '@/src/imports/models.import';
 
-const ShareHoldingPattern = () => {
+const ShareHoldingPatterns = () => {
+    const router = useRouter();
+
+    const { menuId } = router.query;
+
     const [state, setState] = useSetState({
         isOpen: false,
         files: [{ subtitle: '', file: null }],
@@ -32,95 +38,188 @@ const ShareHoldingPattern = () => {
         pageSize: 10,
         reference: '',
         subject: '',
+        filterYear: '',
     });
 
     useEffect(() => {
-        getData();
-    }, []);
+        getTableList();
+    }, [state.selectedTab, menuId, state.filterYear]);
 
-    const getData = async () => {
+    const getTableList = async () => {
         try {
-            setState({ loading: true });
-            const res = await axios.get('https://file.kprmilllimited.com/wp-json/custom-api/v1/cfdb-submissions');
-            const separatedData = res?.data.reduce((acc, obj) => {
-                const formPostId = obj.form_post_id;
-                if (!acc[formPostId]) {
-                    acc[formPostId] = [];
-                }
-                acc[formPostId].push(obj);
-                return acc;
-            }, {});
-
-            const datas = separatedData['3759'];
-            const tableData =
-                datas?.map((item) => ({
-                    title: item.form_value?.title,
-                    link: transformData(item.form_value),
-                    id: item?.id,
-                    year: item?.form_value?.yearselection[0],
-                })) || [];
-
-            setState({ parsedData: tableData, loading: false });
+            setState({ tableLoading: true });
+            const body = {
+                year: state.filterYear?.value,
+            };
+            const res: any = await Models.auth.main_document_list(menuId, body);
+            setState({ tableLoading: false, tableList: res?.results });
         } catch (error) {
-            setState({ loading: false });
+            setState({ tableLoading: false });
+
+            console.log('✌️error --->', error);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setState({ loading: true });
-        if (state.name == '') {
-            setState({ nameError: 'Please enter title ', loading: false });
-            return;
-        }
-        if (state.yearSection == '') {
-            setState({ yearError: 'Please select year ', loading: false });
-            return;
-        }
+        try {
+            setState({ submitLoading: true });
 
-        for (const file of state.files) {
-            if (!file.file) {
-                setState({ errorMessage: 'Please upload a file ', loading: false });
-                return;
-            } else if (!file.subtitle) {
-                setState({ errorMessage: 'Please enter a name ', loading: false });
+            if (state.name == '') {
+                setState({ nameError: 'Please enter title ', submitLoading: false });
                 return;
             }
-        }
-        const formData = new FormData();
-        const outputArray = state.files.map((item, index) => {
-            return {
-                [`list${index + 1}`]: item.subtitle,
-                [`file-pdf-${index + 1}`]: item.file,
+
+            if (state.yearSection == '') {
+                setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            for (const file of state.files) {
+                if (!file.file) {
+                    setState({ errorMessage: 'Please upload a file ', submitLoading: false });
+                    return;
+                } else if (!file.subtitle) {
+                    setState({ errorMessage: 'Please enter a name ', submitLoading: false });
+                    return;
+                }
+            }
+            const outputArray = state.files.map((item, index) => {
+                return {
+                    name: item.subtitle,
+                    file: item.file,
+                };
+            });
+
+            const body: any = {
+                title: state.name,
+                year: state.yearSection?.value,
+                files: outputArray,
+                reference: state.reference,
+                subject: state.subject,
+                submenu: menuId,
             };
-        });
-        console.log('outputArray: ', outputArray);
 
-        outputArray.forEach((item) => {
-            Object.keys(item).forEach((key) => {
-                formData.append(key, item[key]);
-            });
-        });
-        formData.append('title', state.name);
-        formData.append('ref', state.reference);
-        formData.append('sub', state.subject);
-        formData.append('yearselection', state.yearSection.label);
-        formData.append('_wpcf7', '3759');
-        formData.append('_wpcf7_unit_tag', 'wpcf7-f3650-p3651-o1');
+            const formData = new FormData();
 
-        try {
-            const token = localStorage.getItem('kprToken');
-            const res: any = await axios.post(`https://file.kprmilllimited.com/wp-json/contact-form-7/v1/contact-forms/3759/feedback`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    Authorization: `Bearer ${token}`,
-                },
+            formData.append('title', body.title);
+            formData.append('main_menu', body.submenu);
+            formData.append('year', body.year);
+            formData.append('reference', body.reference);
+            formData.append('subject', body.subject);
+
+            outputArray.forEach((file, index) => {
+                formData.append(`files[${index}].file`, file?.file); // Append the file
+                formData.append(`files[${index}].name`, file.name); // Append the custom name or default to the file name
             });
-            setState({ isOpen: false, name: '', yearSection: '', files: [{ subtitle: '', file: null }], loading: false, nameError: '', yearError: '', reference: '', subject: '' });
-            getData();
-            Success(res?.data?.message);
+            const res = await Models.auth.add_document(formData);
+            getTableList();
+            setState({
+                submitLoading: false,
+                isOpen: false,
+                updateId: '',
+                name: '',
+                nameError: '',
+                yearError: '',
+                yearSection: '',
+                files: [{ subtitle: '', file: null }],
+                errorMessage: '',
+                reference: '',
+                subject: '',
+            });
         } catch (error) {
-            setState({ loading: false });
+            setState({ submitLoading: false });
+            console.error('Error:', error);
+        }
+    };
+
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        try {
+            setState({ submitLoading: true });
+            if (state.name == '') {
+                setState({ nameError: 'Please enter title ', submitLoading: false });
+                return;
+            }
+
+            if (state.yearSection == '') {
+                setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            for (const file of state.files) {
+                if (!file.file) {
+                    setState({ errorMessage: 'Please upload a file ', submitLoading: false });
+                    return;
+                } else if (!file.subtitle) {
+                    setState({ errorMessage: 'Please enter a name ', submitLoading: false });
+                    return;
+                }
+            }
+
+            const withoutId = state.files.filter((item) => item.id === undefined);
+
+            const withId = state.files.filter((item) => item.id !== undefined);
+
+            const unmatched = withId.filter((item1) => {
+                const match = state.uploadedFiles.find((item2) => item2?.id === item1?.id);
+                return match && item1?.subtitle !== match?.subtitle;
+            });
+
+            if (unmatched?.length > 0) {
+                unmatched?.map(async (item, index) => {
+                    const body = {
+                        name: item.subtitle,
+                        file: item.file,
+                    };
+                    const res = await Models.auth.update_document_file(item?.id, body);
+                });
+            }
+
+            const body: any = {
+                title: state.name,
+                year: state.yearSection?.value,
+                reference: state.reference,
+                subject: state.subject,
+                submenu: menuId,
+            };
+
+            const formData = new FormData();
+
+            formData.append('title', body.title);
+            formData.append('main_menu', body.submenu);
+            formData.append('year', body.year);
+            formData.append('reference', body.reference);
+            formData.append('subject', body.subject);
+
+            if (withoutId?.length > 0) {
+                withoutId?.map(async (item, index) => {
+                    const body = {
+                        document: state.updateId,
+                        name: item.subtitle,
+                        file: item.file,
+                    };
+                    const res = await Models.auth.add_document_file(body);
+                    getTableList();
+                });
+            }
+            const res = await Models.auth.update_document(state.updateId, formData);
+            getTableList();
+            setState({
+                submitLoading: false,
+                isOpen: false,
+                updateId: '',
+                name: '',
+                nameError: '',
+                yearError: '',
+                yearSection: '',
+                files: [{ subtitle: '', file: null }],
+                errorMessage: '',
+                reference: '',
+                subject: '',
+            });
+        } catch (error) {
+            setState({ submitLoading: false });
             console.error('Error:', error);
         }
     };
@@ -140,10 +239,16 @@ const ShareHoldingPattern = () => {
         setState({ files: newFiles, errorMessage: '' });
     };
 
-    const handleRemove = (index, item) => {
-        const newFiles = [...state.files];
-        state.files.splice(index, 1);
-        setState({ files: state.files });
+    const handleRemove = async (index, item) => {
+        try {
+            if (item?.id) {
+                await Models.auth.delete_document_files(item?.id);
+            }
+            state.files.splice(index, 1);
+            setState({ files: state.files });
+        } catch (error) {
+            console.log('✌️error --->', error);
+        }
     };
 
     const handleAddFile = () => {
@@ -172,20 +277,8 @@ const ShareHoldingPattern = () => {
         showDeleteAlert(
             async () => {
                 try {
-                    const token = localStorage.getItem('kprToken');
-                    const config = {
-                        method: 'delete',
-                        url: `https://file.kprmilllimited.com/wp-json/cf7-api/v1/forms/3759/submissions/${record.id}`,
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            Authorization: `Bearer ${token}`,
-                        },
-                    };
-
-                    await axios.request(config);
-                    const filteredData = state.parsedData.filter((dataRecord) => dataRecord.id !== record.id);
-                    setState({ parsedData: filteredData });
-                    getData();
+                    const res = await Models.auth.delete_document(record?.id);
+                    getTableList();
 
                     Swal.fire('Deleted!', 'Your data has been deleted.', 'success');
                 } catch (error) {
@@ -199,6 +292,35 @@ const ShareHoldingPattern = () => {
         );
     };
 
+    const setTableData = async (row) => {
+        try {
+            const fileData = row?.files?.map((item) => {
+                const fileName = item?.file.split('/').pop();
+
+                return {
+                    id: item?.id,
+                    subtitle: item?.name,
+                    file: {
+                        name: fileName,
+                    },
+                };
+            });
+
+            setState({
+                isOpen: true,
+                files: fileData,
+                updateId: row?.id,
+                name: row?.title,
+                yearSection: { value: row?.year, label: row?.year },
+                reference: row?.reference,
+                subject: row?.subject,
+                uploadedFiles: fileData,
+            });
+        } catch (error) {
+            console.log('✌️error --->', error);
+        }
+    };
+
     return (
         <div>
             <div className="panel mb-5 flex items-center justify-between gap-5">
@@ -206,15 +328,28 @@ const ShareHoldingPattern = () => {
                     <h5 className="text-lg font-semibold dark:text-white-light">Share Holding Pattern</h5>
                 </div>
                 <div>
-                    <button type="button" className="btn bg-[#642a10] text-white  w-full md:mb-0 md:w-auto" onClick={() => setState({ isOpen: true, update: false, name: '' })}>
+                    <button type="button" className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto" onClick={() => setState({ isOpen: true, update: false, name: '', updateId: '' })}>
                         + Create
                     </button>
+                </div>
+            </div>
+            <div className="z-10 mt-5 grid w-full grid-cols-12 gap-3 pb-5">
+                <div className="z-10 col-span-3 col-start-10 flex justify-end">
+                    <Select
+                        placeholder="Filter by year"
+                        value={state.filterYear}
+                        onChange={(val) => setState({ filterYear: val, yearError: '' })}
+                        options={yearOptions}
+                        isSearchable={true}
+                        isClearable={true}
+                    />
                 </div>
             </div>
             <div className="datatables">
                 <DataTable
                     className="table-hover whitespace-nowrap"
-                    records={state.parsedData}
+                    records={state.tableList}
+                    fetching={state.tableLoading}
                     columns={[
                         { accessor: 'title', title: 'Title' },
                         { accessor: 'year' },
@@ -222,16 +357,16 @@ const ShareHoldingPattern = () => {
                             accessor: 'link',
                             title: 'Link',
                             render: (item: any) =>
-                                item?.link?.map((item) => (
+                                item?.files?.map((item) => (
                                     <div className="flex flex-row ">
-                                        {item['file-pdf-cfdb7_file']?.endsWith('.mp3') ? (
-                                            <a href={item['file-pdf-cfdb7_file']} target="_blank" rel="noopener noreferrer">
+                                        {item?.file?.endsWith('.mp3') ? (
+                                            <a href={item?.file} target="_blank" rel="noopener noreferrer">
                                                 Concall
                                             </a>
                                         ) : (
-                                            <a href={item['file-pdf-cfdb7_file']} target="_blank" rel="noopener noreferrer">
+                                            <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                                                 <Image src={pdf} width={30} height={30} alt="Picture of the author" />
-                                                Download
+                                                {item?.name}
                                             </a>
                                         )}
                                     </div>
@@ -239,28 +374,15 @@ const ShareHoldingPattern = () => {
                         },
 
                         {
-                            // Custom column for actions
-                            accessor: 'actions', // You can use any accessor name you want
+                            accessor: 'actions',
                             title: 'Actions',
-                            // Render method for custom column
-                            render: (row: any) => (
+                            render: (row) => (
                                 <>
-                                    {/* <Tippy content="Edit">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                // const url = row?.link?.split('/').pop();
-                                                // //    const res= urlToFile(row?.link,url)
-                                                // urlToFile(row?.link, url).then((file) => {
-                                                //     console.log(file);
-                                                //     // Output: File object with the specified name
-                                                // });
-                                                setState({ isOpen: true, name: row?.title, update: true });
-                                            }}
-                                        >
+                                    <Tippy content="Edit">
+                                        <button type="button" onClick={() => setTableData(row)}>
                                             <IconPencil className="ltr:mr-2 rtl:ml-2" />
                                         </button>
-                                    </Tippy> */}
+                                    </Tippy>
                                     <Tippy content="Delete">
                                         <button type="button" onClick={() => deleteData(row)}>
                                             <IconTrashLines />
@@ -271,7 +393,7 @@ const ShareHoldingPattern = () => {
                         },
                     ]}
                     highlightOnHover
-                    totalRecords={state.parsedData.length}
+                    totalRecords={state.tableList?.length}
                     recordsPerPage={10}
                     page={state.page}
                     onPageChange={(p) => setState({ page: p })}
@@ -285,13 +407,27 @@ const ShareHoldingPattern = () => {
                     paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                 />
             </div>
+
             <Modal
-                addHeader={`Add`}
+                addHeader={state.updateId ? 'Update' : `Add`}
                 open={state.isOpen}
-                close={() => setState({ isOpen: false, errorMessage: '', name: '', nameError: '', yearError: '', yearSection: '', files: [{ subtitle: '', file: null }], reference: '', subject: '' })}
+                close={() =>
+                    setState({
+                        isOpen: false,
+                        name: '',
+                        nameError: '',
+                        yearError: '',
+                        yearSection: '',
+                        files: [{ subtitle: '', file: null }],
+                        errorMessage: '',
+                        reference: '',
+                        subject: '',
+                        updateId: '',
+                    })
+                }
                 renderComponent={() => (
                     <div className=" p-5">
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={state.updateId ? handleUpdate : handleSubmit}>
                             <div className="">
                                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                                     Title <span className="text-red-500">*</span>
@@ -362,7 +498,7 @@ const ShareHoldingPattern = () => {
                                             ) : (
                                                 <input
                                                     type="file"
-                                                    className="rtl:file-ml-5 form-input p-0 file:border-0 file:bg-[#642a10] text-white  file:px-4 file:py-2 file:font-semibold file:text-white file:hover:bg-[#642a10] ltr:file:mr-5"
+                                                    className="rtl:file-ml-5 form-input p-0 text-white file:border-0 file:bg-[#642a10]  file:px-4 file:py-2 file:font-semibold file:text-white file:hover:bg-[#642a10] ltr:file:mr-5"
                                                     accept=""
                                                     onChange={(e) => handleFileChange(e, index)}
                                                 />
@@ -377,7 +513,7 @@ const ShareHoldingPattern = () => {
                                                 onChange={(e) => handleNameChange(e, index)}
                                             />
                                             {item.file && (
-                                                <a href={URL.createObjectURL(item.file)} target="_blank" rel="noopener noreferrer">
+                                                <a href={item.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                                                     <IconEye />
                                                 </a>
                                             )}
@@ -400,8 +536,8 @@ const ShareHoldingPattern = () => {
                             )}
 
                             <div className="flex justify-end">
-                                <button type="submit" className="btn bg-[#642a10] text-white  !mt-6">
-                                    {state.loading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
+                                <button type="submit" className="btn !mt-6 bg-[#642a10]  text-white">
+                                    {state.submitLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
                                 </button>
                             </div>
                         </form>
@@ -412,4 +548,4 @@ const ShareHoldingPattern = () => {
     );
 };
 
-export default PrivateRouter(ShareHoldingPattern);
+export default PrivateRouter(ShareHoldingPatterns);

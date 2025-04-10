@@ -19,6 +19,8 @@ import axios from 'axios';
 import IconX from '@/components/Icon/IconX';
 import Swal from 'sweetalert2';
 import IconLoader from '@/components/Icon/IconLoader';
+import Models from '@/src/imports/models.import';
+import { Failure } from '@/utils/functions';
 
 const LoginBoxed = () => {
     const [formData, setFormData] = useState({
@@ -41,49 +43,47 @@ const LoginBoxed = () => {
         e.preventDefault();
         try {
             setLoading(true);
-            // let data = JSON.stringify({
-            //     username: 'kprmill',
-            //     password: 'yDn3IC1lCuI&)yEFCARssGGg',
-            // });
-
-            if (formData?.userName == '') {
-                setuserNameErrorMessage('Please enter userName');
-            } else {
-                setuserNameErrorMessage('');
+            if (formData?.userName == ''  ) {
+                Failure('Enter user name');
+                setLoading(false);
+            } 
+            
+            else if(formData?.password == ''){
+                Failure('Enter password');
+                setLoading(false);
             }
 
-            if (formData?.password == '') {
-                setPasswordErrorMessage('Please enter password');
-            } else {
-                setPasswordErrorMessage('');
+            else if(formData?.userName == '' && formData?.password == ''){
+                Failure('Enter user name and password');
+                setLoading(false);
             }
+            else {
+                const body = {
+                    username: formData?.userName,
+                    password: formData?.password,
+                };
 
-            console.log('formData', formData);
-            let data = JSON.stringify({
-                username: formData.userName,
-                password: formData.password,
-            });
+                const res: any = await Models.auth.login(body);
+                // console.log('✌️res --->', res);
+                localStorage.setItem('token', res.access);
+                localStorage.setItem('refreshToken', res.refresh);
 
-            let config = {
-                method: 'post',
-                maxBodyLength: Infinity,
-                url: 'https://file.kprmilllimited.com/wp-json/jwt-auth/v1/token',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                data: data,
-            };
-
-            const response = await axios.request(config);
-            localStorage.setItem('kprToken', response.data.token);
-            setLoading(false);
-            showMessage('Login successfully', 'success');
-            router.replace('/');
+                showMessage('Login successfully', 'success');
+                router.replace({
+                    pathname: '/',
+                    query: { menuId: 1 }, // Sending query params
+                  });
+                setLoading(false);
+            }
         } catch (error) {
-            console.log('error', error?.response?.data?.message);
-            setLoading(false);
+            if (error?.response?.data?.detail) {
+                Failure(error?.response?.data?.detail);
+                setLoading(false);
 
-            showMessage(error?.response?.data?.message, 'error');
+                console.log('error: ', error);
+            }
+        setLoading(false);
+
         }
     };
 
@@ -137,8 +137,8 @@ const LoginBoxed = () => {
                 {/* <img src="/assets/images/auth/coming-soon-object2.png" alt="image" className="absolute left-24 top-0 h-40 md:left-[30%]" />
                 <img src="/assets/images/auth/coming-soon-object3.png" alt="image" className="absolute right-0 top-0 h-[300px]" />
                 <img src="/assets/images/auth/polygon-object.svg" alt="image" className="absolute bottom-0 end-[28%]" /> */}
-                <div className="shadow-2xl relative w-full max-w-[700px] rounded-md bg-[linear-gradient(45deg,#fff9f9_0%,rgba(255,255,255,0)_25%,rgba(255,255,255,0)_75%,_#fff9f9_100%)] p-2 dark:bg-[linear-gradient(52.22deg,#0E1726_0%,rgba(14,23,38,0)_18.66%,rgba(14,23,38,0)_51.04%,rgba(14,23,38,0)_80.07%,#0E1726_100%)]">
-                    <div className="relative flex flex-col justify-center rounded-md bg-white/60 px-6 py-15 backdrop-blur-lg dark:bg-black/50 lg:min-h-[500px]">
+                <div className="relative w-full max-w-[700px] rounded-md bg-[linear-gradient(45deg,#fff9f9_0%,rgba(255,255,255,0)_25%,rgba(255,255,255,0)_75%,_#fff9f9_100%)] p-2 shadow-2xl dark:bg-[linear-gradient(52.22deg,#0E1726_0%,rgba(14,23,38,0)_18.66%,rgba(14,23,38,0)_51.04%,rgba(14,23,38,0)_80.07%,#0E1726_100%)]">
+                    <div className="py-15 relative flex flex-col justify-center rounded-md bg-white/60 px-6 backdrop-blur-lg dark:bg-black/50 lg:min-h-[500px]">
                         <div className="absolute end-6 top-6">
                             <div className="dropdown">
                                 {flag && (
@@ -183,7 +183,7 @@ const LoginBoxed = () => {
                             </div>
                         </div>
                         <div className="mx-auto w-full max-w-[440px]">
-                            <div className="main-logo flex items-center justify-center mb-5">
+                            <div className="main-logo mb-5 flex items-center justify-center">
                                 <img className=" h-[75px] " src="/assets/images/logo.png" alt="logo" />
                             </div>
                             <div className="mb-10">
