@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 export const createApiInstance = () => {
-    let baseURL = 'http://121.200.52.133:8003/api/'
+    let baseURL = 'http://121.200.52.133:8003/api/';
     // let baseURL = 'https://vqbv6q92-8000.inc1.devtunnels.ms/api/';
 
     const api = axios.create({
@@ -33,7 +33,7 @@ export const createApiInstance = () => {
                 if (!refreshToken) {
                     console.log('No refresh token found. Redirecting to login...');
                     clearAuthData();
-                    redirectToLogin();
+                    // redirectToLogin();
                     reject('No refresh token');
                     return;
                 }
@@ -55,7 +55,7 @@ export const createApiInstance = () => {
                             if (error.response.data.code === 'token_not_valid') {
                                 console.log('Token expired. Logging out...');
                                 clearAuthData();
-                                redirectToLogin();
+                                // redirectToLogin();
                             }
                         } else if (error.request) {
                             console.error('No response received:', error.request);
@@ -94,26 +94,29 @@ export const createApiInstance = () => {
         (response) => response,
         (error) => {
             const originalRequest = error.config;
+            if (error?.response?.data) {
+                return Promise.reject(error);
+            } else {
+                if (error.response?.status === 401 && !originalRequest._retry) {
+                    originalRequest._retry = true;
 
-            if (error.response?.status === 401 && !originalRequest._retry) {
-                originalRequest._retry = true;
-
-                return refreshToken()
-                    .then((newAccessToken) => {
-                        if (!newAccessToken) {
+                    return refreshToken()
+                        .then((newAccessToken) => {
+                            if (!newAccessToken) {
+                                redirectToLogin();
+                                return Promise.reject('Failed to refresh token');
+                            }
+                            originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                            return api(originalRequest);
+                        })
+                        .catch((err) => {
                             redirectToLogin();
-                            return Promise.reject('Failed to refresh token');
-                        }
-                        originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                        return api(originalRequest);
-                    })
-                    .catch((err) => {
-                        redirectToLogin();
-                        return Promise.reject(err);
-                    });
-            }
+                            return Promise.reject(err);
+                        });
+                }
 
-            return Promise.reject(error);
+                return Promise.reject(error);
+            }
         }
     );
 

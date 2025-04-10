@@ -337,7 +337,6 @@ const FinancialResults = () => {
             console.log('✌️error --->', error);
         }
     };
-    console.log('✌️files --->', state.files);
 
     return (
         <>
