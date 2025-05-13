@@ -1,40 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import axios from 'axios';
-import { API, Success, parseHTMLContent, showDeleteAlert, transformData, useSetState } from '@/utils/functions';
+import { API, Failure, Success, parseHTMLContent, showDeleteAlert, transformData, useSetState } from '@/utils/functions';
 import { DataTable } from 'mantine-datatable';
 import Tippy from '@tippyjs/react';
 import IconPencil from '@/components/Icon/IconPencil';
 import IconTrashLines from '@/components/Icon/IconTrashLines';
-import { useRouter } from 'next/router';
-import { Loader } from '@mantine/core';
-import IconPdf from '@/components/Icon/IconPdf';
+import Modal from '@/components/Modal';
+import IconLoader from '@/components/Icon/IconLoader';
+import IconX from '@/components/Icon/IconX';
 import Image from 'next/image';
 import pdf from '../public/assets/images/pdf.png';
-import Modal from '@/components/Modal';
-import Select from 'react-select';
-import IconLoader from '@/components/Icon/IconLoader';
+import IconTrash from '@/components/Icon/IconTrash';
 import IconEye from '@/components/Icon/IconEye';
+import Select from 'react-select';
 import Swal from 'sweetalert2';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import { useRouter } from 'next/router';
 import Models from '@/src/imports/models.import';
-import fs from 'fs';
 import IconPlayCircle from '@/components/Icon/IconPlayCircle';
 
-const FinancialResults = () => {
+const RegulationOfTheLodr = () => {
     const router = useRouter();
 
     const { menuId } = router.query;
 
     const [state, setState] = useSetState({
-        data: [],
-        parsedData: [],
-        page: 1,
-        PAGE_SIZES: [10, 20, 30, 50, 100],
-        pageSize: 10,
-        sidebar: [],
-        selectedTab: 0,
-        loading: false,
-        update: false,
         isOpen: false,
         files: [{ subtitle: '', file: null }],
         yearSection: '',
@@ -42,12 +32,13 @@ const FinancialResults = () => {
         name: '',
         yearError: '',
         nameError: '',
+        loading: false,
+        parsedData: [],
+        page: 1,
+        PAGE_SIZES: [10, 20, 30, 50, 100],
+        pageSize: 10,
         reference: '',
         subject: '',
-        selectedMenu: 1,
-        tableList: [],
-        updateId: '',
-        uploadedFiles: [],
         filterYear: '',
     });
 
@@ -55,17 +46,16 @@ const FinancialResults = () => {
         getTableList();
     }, [state.selectedTab, menuId, state.filterYear]);
 
-    useEffect(() => {
-        getSubMenu();
-    }, [menuId]);
-
-    const getSubMenu = async () => {
+    const getTableList = async () => {
         try {
-            setState({ loading: true });
-            const res: any = await Models.auth.sub_menu(menuId);
-            setState({ sidebar: res?.results, loading: false });
+            setState({ tableLoading: true });
+            const body = {
+                year: state.filterYear?.value,
+            };
+            const res: any = await Models.auth.main_document_list(menuId, body);
+            setState({ tableLoading: false, tableList: res?.results });
         } catch (error) {
-            setState({ loading: false });
+            setState({ tableLoading: false });
 
             console.log('✌️error --->', error);
         }
@@ -102,19 +92,19 @@ const FinancialResults = () => {
                 };
             });
 
-            const body = {
+            const body: any = {
                 title: state.name,
                 year: state.yearSection?.value,
                 files: outputArray,
                 reference: state.reference,
                 subject: state.subject,
-                submenu: state.selectedMenu,
+                submenu: menuId,
             };
 
             const formData = new FormData();
 
             formData.append('title', body.title);
-            formData.append('submenu', body.submenu);
+            formData.append('main_menu', body.submenu);
             formData.append('year', body.year);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
@@ -125,8 +115,19 @@ const FinancialResults = () => {
             });
             const res = await Models.auth.add_document(formData);
             getTableList();
-
-            setState({ submitLoading: false, isOpen: false, updateId: '' });
+            setState({
+                submitLoading: false,
+                isOpen: false,
+                updateId: '',
+                name: '',
+                nameError: '',
+                yearError: '',
+                yearSection: '',
+                files: [{ subtitle: '', file: null }],
+                errorMessage: '',
+                reference: '',
+                subject: '',
+            });
         } catch (error) {
             setState({ submitLoading: false });
             console.error('Error:', error);
@@ -176,18 +177,18 @@ const FinancialResults = () => {
                 });
             }
 
-            const body = {
+            const body: any = {
                 title: state.name,
                 year: state.yearSection?.value,
                 reference: state.reference,
                 subject: state.subject,
-                submenu: state.selectedMenu,
+                submenu: menuId,
             };
 
             const formData = new FormData();
 
             formData.append('title', body.title);
-            formData.append('submenu', body.submenu);
+            formData.append('main_menu', body.submenu);
             formData.append('year', body.year);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
@@ -292,22 +293,6 @@ const FinancialResults = () => {
         );
     };
 
-    const getTableList = async () => {
-        try {
-            setState({ tableLoading: true });
-            const body = {
-                year: state.filterYear?.value,
-            };
-            const res: any = await Models.auth.document_list(state.selectedMenu, body);
-            console.log('✌️res --->', res);
-            setState({ tableLoading: false, tableList: res?.results });
-        } catch (error) {
-            setState({ tableLoading: false });
-
-            console.log('✌️error --->', error);
-        }
-    };
-
     const setTableData = async (row) => {
         try {
             const fileData = row?.files?.map((item) => {
@@ -339,36 +324,18 @@ const FinancialResults = () => {
     };
 
     return (
-        <>
+        <div>
             <div className="panel mb-5 flex items-center justify-between gap-5">
                 <div className="flex items-center gap-5">
-                    <h5 className="text-lg font-semibold dark:text-white-light">Financial Result</h5>
+                    <h5 className="text-lg font-semibold dark:text-white-light">Regulation 46 of the lodr</h5>
                 </div>
-                {/* <Select placeholder="Select Year" value={state.yearSection} onChange={(val) => setState({ yearSection: val, yearError: '' })} options={yearOptions} isSearchable={true} /> */}
                 <div>
-                    <button
-                        type="button"
-                        className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto"
-                        onClick={() =>
-                            setState({
-                                isOpen: true,
-                                name: '',
-                                nameError: '',
-                                yearError: '',
-                                yearSection: '',
-                                files: [{ subtitle: '', file: null }],
-                                errorMessage: '',
-                                reference: '',
-                                subject: '',
-                                updateId: '',
-                            })
-                        }
-                    >
+                    <button type="button" className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto" onClick={() => setState({ isOpen: true, update: false, name: '', updateId: '' })}>
                         + Create
                     </button>
                 </div>
             </div>
-            <div className="z-10 mt-5 grid w-full grid-cols-12 gap-3">
+            <div className="z-10 mt-5 grid w-full grid-cols-12 gap-3 pb-5">
                 <div className="z-10 col-span-12 flex justify-end lg:col-span-3 lg:col-start-10">
                     <Select
                         placeholder="Filter by year"
@@ -380,93 +347,75 @@ const FinancialResults = () => {
                     />
                 </div>
             </div>
+            <div className="datatables">
+                <DataTable
+                    className="table-hover whitespace-nowrap"
+                    records={state.tableList}
+                    fetching={state.tableLoading}
+                    columns={[
+                        { accessor: 'title', title: 'Title' },
+                        { accessor: 'year' },
+                        {
+                            accessor: 'link',
+                            title: 'Link',
+                            width: 400,
+                            render: (item: any) => (
+                                <div className="flex flex-row flex-wrap gap-4">
+                                    {item?.files?.map((fileItem: any, index: number) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            {fileItem?.file?.endsWith('.mp3') ? (
+                                                <a href={fileItem?.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                    <IconPlayCircle />
+                                                    {fileItem?.name}
+                                                </a>
+                                            ) : (
+                                                <a href={fileItem.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                                    <Image src={pdf} width={30} height={30} alt="PDF icon" />
+                                                    {fileItem?.name}
+                                                </a>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ),
+                        },
 
-            <div className="mt-5 grid w-full grid-cols-12 gap-3 ">
-                <div className="col-span-3 grid ">
-                    <div>
-                        {state.sidebar?.map((link, index) => (
-                            <div
-                                key={index}
-                                onClick={() => setState({ selectedTab: index, selectedMenu: link?.id })}
-                                className={`dark:hover:text-primary-dark border-1 cursor-pointer  border border-gray-300 px-4 py-2 ${
-                                    state.selectedTab === index ? 'bg-[#642a10] text-white' : 'bg-white text-black'
-                                }`}
-                            >
-                                <div className="text-md text-bold cursor-pointer text-sm">{link?.name}</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <div className="datatables col-span-9 grid">
-                    <DataTable
-                        className="table-hover whitespace-nowrap"
-                        records={state.tableList}
-                        fetching={state.tableLoading}
-                        customLoader={<Loader />}
-                        columns={[
-                            { accessor: 'title', title: 'Title' },
-                            { accessor: 'year' },
-
-                            {
-                                accessor: 'link',
-                                title: 'Link',
-                                width: 400,
-                                render: (item: any) => (
-                                    <div className="flex flex-row flex-wrap gap-4">
-                                        {item?.files?.map((fileItem: any, index: number) => (
-                                            <div key={index} className="flex items-center gap-2">
-                                                {fileItem?.file?.endsWith('.mp3') ? (
-                                                    <a href={fileItem?.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                                                        <IconPlayCircle />
-                                                        {fileItem?.name}
-                                                    </a>
-                                                ) : (
-                                                    <a href={fileItem.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                                                        <Image src={pdf} width={30} height={30} alt="PDF icon" />
-                                                        {fileItem?.name}
-                                                    </a>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ),
-                            },
-                            {
-                                accessor: 'actions',
-                                title: 'Actions',
-                                render: (row) => (
-                                    <>
-                                        <Tippy content="Edit">
-                                            <button type="button" onClick={() => setTableData(row)}>
-                                                <IconPencil className="ltr:mr-2 rtl:ml-2" />
-                                            </button>
-                                        </Tippy>
-                                        <Tippy content="Delete">
-                                            <button type="button" onClick={() => deleteData(row)}>
-                                                <IconTrashLines />
-                                            </button>
-                                        </Tippy>
-                                    </>
-                                ),
-                            },
-                        ]}
-                        highlightOnHover
-                        totalRecords={state.tableList?.length}
-                        recordsPerPage={state.pageSize}
-                        // page={state.page}
-                        page={null}
-                        onPageChange={(p) => setState({ page: p })}
-                        recordsPerPageOptions={state.PAGE_SIZES}
-                        onRecordsPerPageChange={(size) => setState({ pageSize: size })}
-                        sortStatus={null}
-                        onSortStatusChange={() => {}}
-                        selectedRecords={null}
-                        onSelectedRecordsChange={(selectedRecords) => {}}
-                        minHeight={200}
-                        paginationText={({ from, to, totalRecords }) => `Showing ${from} to ${to} of ${totalRecords} entries`}
-                    />
-                </div>
+                        {
+                            accessor: 'actions',
+                            title: 'Actions',
+                            render: (row) => (
+                                <>
+                                    <Tippy content="Edit">
+                                        <button type="button" onClick={() => setTableData(row)}>
+                                            <IconPencil className="ltr:mr-2 rtl:ml-2" />
+                                        </button>
+                                    </Tippy>
+                                    <Tippy content="Delete">
+                                        <button type="button" onClick={() => deleteData(row)}>
+                                            <IconTrashLines />
+                                        </button>
+                                    </Tippy>
+                                </>
+                            ),
+                        },
+                    ]}
+                    highlightOnHover
+                    totalRecords={state.tableList?.length}
+                    recordsPerPage={10}
+                    // page={state.page}
+                    page={null}
+                    onPageChange={(p) => setState({ page: p })}
+                    recordsPerPageOptions={state.PAGE_SIZES}
+                    onRecordsPerPageChange={null}
+                    sortStatus={null}
+                    onSortStatusChange={() => {}}
+                    selectedRecords={null}
+                    onSelectedRecordsChange={(selectedRecords) => {}}
+                    minHeight={200}
+                    paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
+                />
             </div>
+
             <Modal
                 addHeader={state.updateId ? 'Update' : `Add`}
                 open={state.isOpen}
@@ -488,21 +437,20 @@ const FinancialResults = () => {
                     <div className=" p-5">
                         <form onSubmit={state.updateId ? handleUpdate : handleSubmit}>
                             <div className="">
-                                <div>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                                        Title <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        name="name"
-                                        type="text"
-                                        id="name"
-                                        placeholder="Enter Title"
-                                        className="form-input mt-1 block w-full"
-                                        value={state.name}
-                                        onChange={(e) => setState({ name: e.target.value, nameError: '' })}
-                                    />
-                                    {state.nameError && <div className="mb-2 text-red-500">{state.nameError}</div>}
-                                </div>
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                    Title <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    name="name"
+                                    type="text"
+                                    id="name"
+                                    placeholder="Enter Title"
+                                    className="form-input mt-1 block w-full"
+                                    value={state.name}
+                                    onChange={(e) => setState({ name: e.target.value, nameError: '' })}
+                                />
+                                {state.nameError && <div className="mb-2 text-red-500">{state.nameError}</div>}
+
                                 <div className="mt-4">
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                                         Reference
@@ -531,6 +479,7 @@ const FinancialResults = () => {
                                         onChange={(e) => setState({ subject: e.target.value })}
                                     />
                                 </div>
+
                                 <div className=" mt-3" style={{ width: '100%' }}>
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                                         Year <span className="text-red-500">*</span>
@@ -550,7 +499,7 @@ const FinancialResults = () => {
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                                         Files <span className="text-red-500">*</span>
                                     </label>
-                                    {state.files?.map((item, index) => (
+                                    {state.files.map((item, index) => (
                                         <div key={index} className={`mb-3 flex items-center space-x-2`}>
                                             {item.file ? (
                                                 <div>{item.file.name}</div>
@@ -608,7 +557,8 @@ const FinancialResults = () => {
                     </div>
                 )}
             />
-        </>
+        </div>
     );
 };
-export default PrivateRouter(FinancialResults);
+
+export default PrivateRouter(RegulationOfTheLodr);

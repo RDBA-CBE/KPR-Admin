@@ -402,7 +402,8 @@ const ShareHoldingPatterns = () => {
                     highlightOnHover
                     totalRecords={state.tableList?.length}
                     recordsPerPage={10}
-                    page={state.page}
+                    // page={state.page}
+                    page={null}
                     onPageChange={(p) => setState({ page: p })}
                     recordsPerPageOptions={state.PAGE_SIZES}
                     onRecordsPerPageChange={null}

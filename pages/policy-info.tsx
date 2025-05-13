@@ -443,7 +443,8 @@ const PolicyInfo = () => {
                             highlightOnHover
                             totalRecords={state.tableList?.length}
                             recordsPerPage={state.pageSize}
-                            page={state.page}
+                            // page={state.page}
+                            page={null}
                             onPageChange={(p) => setState({ page: p })}
                             recordsPerPageOptions={state.PAGE_SIZES}
                             onRecordsPerPageChange={(size) => setState({ pageSize: size })}
