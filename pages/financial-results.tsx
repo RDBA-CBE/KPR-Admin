@@ -19,6 +19,8 @@ import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import Models from '@/src/imports/models.import';
 import fs from 'fs';
 import IconPlayCircle from '@/components/Icon/IconPlayCircle';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
 
 const FinancialResults = () => {
     const router = useRouter();
@@ -49,10 +51,15 @@ const FinancialResults = () => {
         updateId: '',
         uploadedFiles: [],
         filterYear: '',
+
+        currentPage: 1,
+        totalRecords: 0,
+        next: null,
+        previous: null,
     });
 
     useEffect(() => {
-        getTableList();
+        getTableList(state.currentPage);
     }, [state.selectedTab, menuId, state.filterYear]);
 
     useEffect(() => {
@@ -124,7 +131,7 @@ const FinancialResults = () => {
                 formData.append(`files[${index}].name`, file.name); // Append the custom name or default to the file name
             });
             const res = await Models.auth.add_document(formData);
-            getTableList();
+            getTableList(state.currentPage);
 
             setState({ submitLoading: false, isOpen: false, updateId: '' });
         } catch (error) {
@@ -200,11 +207,11 @@ const FinancialResults = () => {
                         file: item.file,
                     };
                     const res = await Models.auth.add_document_file(body);
-                    getTableList();
+                    getTableList(state.currentPage);
                 });
             }
             const res = await Models.auth.update_document(state.updateId, formData);
-            getTableList();
+            getTableList(state.currentPage);
             setState({
                 submitLoading: false,
                 isOpen: false,
@@ -278,7 +285,7 @@ const FinancialResults = () => {
             async () => {
                 try {
                     const res = await Models.auth.delete_document(record?.id);
-                    getTableList();
+                    getTableList(state.currentPage);
 
                     Swal.fire('Deleted!', 'Your data has been deleted.', 'success');
                 } catch (error) {
@@ -292,15 +299,22 @@ const FinancialResults = () => {
         );
     };
 
-    const getTableList = async () => {
+    const getTableList = async (page) => {
         try {
             setState({ tableLoading: true });
             const body = {
                 year: state.filterYear?.value,
             };
-            const res: any = await Models.auth.document_list(state.selectedMenu, body);
+            const res: any = await Models.auth.document_list(state.selectedMenu, body,page);
             console.log('✌️res --->', res);
-            setState({ tableLoading: false, tableList: res?.results });
+            setState({ 
+                tableLoading: false, 
+                tableList: res?.results,
+                totalRecords: res.count,
+                next: res.next,
+                previous: res.previous,
+                currentPage: page,
+             });
         } catch (error) {
             setState({ tableLoading: false });
 
@@ -335,6 +349,20 @@ const FinancialResults = () => {
             });
         } catch (error) {
             console.log('✌️error --->', error);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (state.next) {
+            const newPage = state.currentPage + 1;
+            getTableList(newPage);
+        }
+    };
+
+    const handlePreviousPage = () => {
+        if (state.previous) {
+            const newPage = state.currentPage - 1;
+            getTableList(newPage);
         }
     };
 
@@ -466,7 +494,17 @@ const FinancialResults = () => {
                         paginationText={({ from, to, totalRecords }) => `Showing ${from} to ${to} of ${totalRecords} entries`}
                     />
                 </div>
+
+
             </div>
+            <div className="mt-5 flex justify-end gap-3">
+                        <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
+                            <IconArrowBackward />
+                        </button>
+                        <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
+                            <IconArrowForward />
+                        </button>
+                    </div>
             <Modal
                 addHeader={state.updateId ? 'Update' : `Add`}
                 open={state.isOpen}

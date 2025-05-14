@@ -18,6 +18,8 @@ import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import { useRouter } from 'next/router';
 import Models from '@/src/imports/models.import';
 import IconPlayCircle from '@/components/Icon/IconPlayCircle';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
 
 const ShareHoldingPatterns = () => {
     const router = useRouter();
@@ -40,26 +42,52 @@ const ShareHoldingPatterns = () => {
         reference: '',
         subject: '',
         filterYear: '',
+        currentPage: 1,
+        totalRecords: 0,
+        next: null,
+        previous: null,
     });
 
     useEffect(() => {
-        getTableList();
+        getTableList(state.currentPage);
     }, [state.selectedTab, menuId, state.filterYear]);
 
-    const getTableList = async () => {
-        try {
-            setState({ tableLoading: true });
-            const body = {
-                year: state.filterYear?.value,
-            };
-            const res: any = await Models.auth.main_document_list(menuId, body);
-            setState({ tableLoading: false, tableList: res?.results });
-        } catch (error) {
-            setState({ tableLoading: false });
+    const getTableList = async (page:any) => {
+            try {
+                setState({ tableLoading: true });
+                const body = {
+                    year: state.filterYear?.value,
+                };
+                const res: any = await Models.auth.main_document_list(menuId, body,page);
+                console.log('✌️res --->', res);
+                setState({ 
+                    tableLoading: false, 
+                    tableList: res?.results,
+                    totalRecords: res.count,
+                    next: res.next,
+                    previous: res.previous,
+                    currentPage: page,
+                 });
+            } catch (error) {
+                setState({ tableLoading: false });
+    
+                console.log('✌️error --->', error);
+            }
+        };
 
-            console.log('✌️error --->', error);
-        }
-    };
+        const handleNextPage = () => {
+            if (state.next) {
+                const newPage = state.currentPage + 1;
+                getTableList(newPage);
+            }
+        };
+    
+        const handlePreviousPage = () => {
+            if (state.previous) {
+                const newPage = state.currentPage - 1;
+                getTableList(newPage);
+            }
+        };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -114,7 +142,7 @@ const ShareHoldingPatterns = () => {
                 formData.append(`files[${index}].name`, file.name); // Append the custom name or default to the file name
             });
             const res = await Models.auth.add_document(formData);
-            getTableList();
+            getTableList(state.currentPage);
             setState({
                 submitLoading: false,
                 isOpen: false,
@@ -201,11 +229,11 @@ const ShareHoldingPatterns = () => {
                         file: item.file,
                     };
                     const res = await Models.auth.add_document_file(body);
-                    getTableList();
+                    getTableList(state.currentPage);
                 });
             }
             const res = await Models.auth.update_document(state.updateId, formData);
-            getTableList();
+            getTableList(state.currentPage);
             setState({
                 submitLoading: false,
                 isOpen: false,
@@ -279,7 +307,7 @@ const ShareHoldingPatterns = () => {
             async () => {
                 try {
                     const res = await Models.auth.delete_document(record?.id);
-                    getTableList();
+                    getTableList(state.currentPage);
 
                     Swal.fire('Deleted!', 'Your data has been deleted.', 'success');
                 } catch (error) {
@@ -415,6 +443,14 @@ const ShareHoldingPatterns = () => {
                     paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                 />
             </div>
+            <div className="mt-5 flex justify-end gap-3">
+                        <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
+                            <IconArrowBackward />
+                        </button>
+                        <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
+                            <IconArrowForward />
+                        </button>
+                    </div>
 
             <Modal
                 addHeader={state.updateId ? 'Update' : `Add`}
