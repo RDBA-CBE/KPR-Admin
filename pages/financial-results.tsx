@@ -64,15 +64,19 @@ const FinancialResults = () => {
 
     useEffect(() => {
         getSubMenu();
-    }, [menuId]);
+    }, [menuId,]);
 
     const getSubMenu = async () => {
         try {
             setState({ loading: true });
-            const res: any = await Models.auth.sub_menu(menuId);
-            setState({ sidebar: res?.results, loading: false });
+            const res: any = await Models.auth.sub_menu(menuId,);
+            setState({ 
+                sidebar: res?.results, 
+                loading: false,
+             });
         } catch (error) {
-            setState({ loading: false });
+            setState({ loading: false ,});
+            
 
             console.log('✌️error --->', error);
         }
@@ -485,13 +489,14 @@ const FinancialResults = () => {
                         page={null}
                         onPageChange={(p) => setState({ page: p })}
                         recordsPerPageOptions={state.PAGE_SIZES}
+                   
                         onRecordsPerPageChange={(size) => setState({ pageSize: size })}
                         sortStatus={null}
                         onSortStatusChange={() => {}}
                         selectedRecords={null}
                         onSelectedRecordsChange={(selectedRecords) => {}}
                         minHeight={200}
-                        paginationText={({ from, to, totalRecords }) => `Showing ${from} to ${to} of ${totalRecords} entries`}
+                        paginationText={({ from, to, totalRecords }) => `Showing ${from} to ${to} of ${state?.totalRecords} entries`}
                     />
                 </div>
 
@@ -650,3 +655,4 @@ const FinancialResults = () => {
     );
 };
 export default PrivateRouter(FinancialResults);
+
