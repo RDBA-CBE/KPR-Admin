@@ -67,9 +67,9 @@ const auth = {
         return promise;
     },
 
-    document_list: (id: any, body) => {
+    document_list: (id: any, body, page) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `documents/?submenu=${id}`;
+            let url =`documents/?page=${page}&submenu=${id}`;
             if (body.year) {
                 url += `&year=${encodeURIComponent(body.year)}`;
             }

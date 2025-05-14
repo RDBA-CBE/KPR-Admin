@@ -52,20 +52,24 @@ const FinancialResults = () => {
     });
 
     useEffect(() => {
-        getTableList();
-    }, [state.selectedTab, menuId, state.filterYear]);
+        getTableList(state.page);
+    }, [state.selectedTab, menuId, state.filterYear,state.page]);
 
     useEffect(() => {
         getSubMenu();
-    }, [menuId]);
+    }, [menuId,]);
 
     const getSubMenu = async () => {
         try {
             setState({ loading: true });
-            const res: any = await Models.auth.sub_menu(menuId);
-            setState({ sidebar: res?.results, loading: false });
+            const res: any = await Models.auth.sub_menu(menuId,);
+            setState({ 
+                sidebar: res?.results, 
+                loading: false,
+             });
         } catch (error) {
-            setState({ loading: false });
+            setState({ loading: false ,});
+            
 
             console.log('✌️error --->', error);
         }
@@ -124,7 +128,7 @@ const FinancialResults = () => {
                 formData.append(`files[${index}].name`, file.name); // Append the custom name or default to the file name
             });
             const res = await Models.auth.add_document(formData);
-            getTableList();
+            getTableList(state.page);
 
             setState({ submitLoading: false, isOpen: false, updateId: '' });
         } catch (error) {
@@ -200,11 +204,11 @@ const FinancialResults = () => {
                         file: item.file,
                     };
                     const res = await Models.auth.add_document_file(body);
-                    getTableList();
+                    getTableList(state.page);
                 });
             }
             const res = await Models.auth.update_document(state.updateId, formData);
-            getTableList();
+            getTableList(state.page);
             setState({
                 submitLoading: false,
                 isOpen: false,
@@ -278,7 +282,7 @@ const FinancialResults = () => {
             async () => {
                 try {
                     const res = await Models.auth.delete_document(record?.id);
-                    getTableList();
+                    getTableList(state.page);
 
                     Swal.fire('Deleted!', 'Your data has been deleted.', 'success');
                 } catch (error) {
@@ -292,15 +296,23 @@ const FinancialResults = () => {
         );
     };
 
-    const getTableList = async () => {
+    const getTableList = async (page) => {
         try {
             setState({ tableLoading: true });
             const body = {
                 year: state.filterYear?.value,
             };
-            const res: any = await Models.auth.document_list(state.selectedMenu, body);
+            const res: any = await Models.auth.document_list(state.selectedMenu, body,page);
             console.log('✌️res --->', res);
-            setState({ tableLoading: false, tableList: res?.results });
+            setState({ tableLoading: false, 
+                tableList: res?.results,
+                loading: false,
+                totalRecords: res.count,
+                next: res.next,
+                previous: res.previous,
+                currentPage: page,
+             
+             });
         } catch (error) {
             setState({ tableLoading: false });
 
@@ -453,17 +465,17 @@ const FinancialResults = () => {
                         highlightOnHover
                         totalRecords={state.tableList?.length}
                         recordsPerPage={state.pageSize}
-                        // page={state.page}
-                        page={null}
+                        page={state.page}
                         onPageChange={(p) => setState({ page: p })}
                         recordsPerPageOptions={state.PAGE_SIZES}
+                   
                         onRecordsPerPageChange={(size) => setState({ pageSize: size })}
                         sortStatus={null}
                         onSortStatusChange={() => {}}
                         selectedRecords={null}
                         onSelectedRecordsChange={(selectedRecords) => {}}
                         minHeight={200}
-                        paginationText={({ from, to, totalRecords }) => `Showing ${from} to ${to} of ${totalRecords} entries`}
+                        paginationText={({ from, to, totalRecords }) => `Showing ${from} to ${to} of ${state?.totalRecords} entries`}
                     />
                 </div>
             </div>
@@ -612,3 +624,4 @@ const FinancialResults = () => {
     );
 };
 export default PrivateRouter(FinancialResults);
+
