@@ -52,7 +52,7 @@ const RegulationOfTheLodr = () => {
             const body = {
                 year: state.filterYear?.value,
             };
-            const res: any = await Models.auth.main_document_list(menuId, body);
+            const res: any = await Models.auth.main_document_list(menuId, body,1);
             setState({ tableLoading: false, tableList: res?.results });
         } catch (error) {
             setState({ tableLoading: false });
