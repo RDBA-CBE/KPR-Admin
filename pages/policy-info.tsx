@@ -19,6 +19,8 @@ import { Loading } from 'notiflix/build/notiflix-loading-aio';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import Models from '@/src/imports/models.import';
 import IconPlayCircle from '@/components/Icon/IconPlayCircle';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
 
 const PolicyInfo = () => {
     const router = useRouter();
@@ -48,10 +50,14 @@ const PolicyInfo = () => {
         updateId: '',
         uploadedFiles: [],
         filterYear: '',
+        currentPage: 1,
+        totalRecords: 0,
+        next: null,
+        previous: null,
     });
 
     useEffect(() => {
-        getTableList();
+        getTableList(state.currentPage);
     }, [state.selectedTab, menuId, state.filterYear]);
 
     useEffect(() => {
@@ -123,7 +129,7 @@ const PolicyInfo = () => {
                 formData.append(`files[${index}].name`, file.name); // Append the custom name or default to the file name
             });
             const res = await Models.auth.add_document(formData);
-            getTableList();
+            getTableList(state.currentPage);
             setState({
                 submitLoading: false,
                 isOpen: false,
@@ -210,11 +216,11 @@ const PolicyInfo = () => {
                         file: item.file,
                     };
                     const res = await Models.auth.add_document_file(body);
-                    getTableList();
+                    getTableList(state.currentPage);
                 });
             }
             const res = await Models.auth.update_document(state.updateId, formData);
-            getTableList();
+            getTableList(state.currentPage);
             setState({
                 submitLoading: false,
                 isOpen: false,
@@ -288,7 +294,7 @@ const PolicyInfo = () => {
             async () => {
                 try {
                     const res = await Models.auth.delete_document(record?.id);
-                    getTableList();
+                    getTableList(state.currentPage);
 
                     Swal.fire('Deleted!', 'Your data has been deleted.', 'success');
                 } catch (error) {
@@ -302,20 +308,28 @@ const PolicyInfo = () => {
         );
     };
 
-    const getTableList = async () => {
-        try {
-            setState({ tableLoading: true });
-            const body = {
-                year: state.filterYear?.value,
-            };
-            const res: any = await Models.auth.document_list(state.selectedMenu, body);
-            setState({ tableLoading: false, tableList: res?.results });
-        } catch (error) {
-            setState({ tableLoading: false });
-
-            console.log('✌️error --->', error);
-        }
-    };
+   const getTableList = async (page) => {
+           try {
+               setState({ tableLoading: true });
+               const body = {
+                   year: state.filterYear?.value,
+               };
+               const res: any = await Models.auth.document_list(state.selectedMenu, body,page);
+               console.log('✌️res --->', res);
+               setState({ 
+                   tableLoading: false, 
+                   tableList: res?.results,
+                   totalRecords: res.count,
+                   next: res.next,
+                   previous: res.previous,
+                   currentPage: page,
+                });
+           } catch (error) {
+               setState({ tableLoading: false });
+   
+               console.log('✌️error --->', error);
+           }
+       };
 
     const setTableData = async (row) => {
         try {
@@ -344,6 +358,20 @@ const PolicyInfo = () => {
             });
         } catch (error) {
             console.log('✌️error --->', error);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (state.next) {
+            const newPage = state.currentPage + 1;
+            getTableList(newPage);
+        }
+    };
+
+    const handlePreviousPage = () => {
+        if (state.previous) {
+            const newPage = state.currentPage - 1;
+            getTableList(newPage);
         }
     };
 
@@ -443,7 +471,8 @@ const PolicyInfo = () => {
                             highlightOnHover
                             totalRecords={state.tableList?.length}
                             recordsPerPage={state.pageSize}
-                            page={state.page}
+                            // page={state.page}
+                            page={null}
                             onPageChange={(p) => setState({ page: p })}
                             recordsPerPageOptions={state.PAGE_SIZES}
                             onRecordsPerPageChange={(size) => setState({ pageSize: size })}
@@ -597,6 +626,15 @@ const PolicyInfo = () => {
                     )}
                 />
             </div>
+
+            <div className="mt-5 flex justify-end gap-3">
+                        <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
+                            <IconArrowBackward />
+                        </button>
+                        <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
+                            <IconArrowForward />
+                        </button>
+                    </div>
         </>
     );
 };

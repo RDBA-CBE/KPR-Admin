@@ -67,9 +67,9 @@ const auth = {
         return promise;
     },
 
-    document_list: (id: any, body) => {
+    document_list: (id: any, body,page:any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `documents/?submenu=${id}`;
+            let url = `documents/?page=${page}&submenu=${id}`;
             if (body.year) {
                 url += `&year=${encodeURIComponent(body.year)}`;
             }
@@ -264,9 +264,9 @@ const auth = {
         return promise;
     },
 
-    main_document_list: (id: any, body: any) => {
+    main_document_list: (id: any, body: any,page:any) => {
         let promise = new Promise((resolve, reject) => {
-            let url = `documents/?main_menu=${id}`;
+            let url = `documents/?page=${page}&main_menu=${id}`;
             if (body.year) {
                 url += `&year=${encodeURIComponent(body.year)}`;
             }

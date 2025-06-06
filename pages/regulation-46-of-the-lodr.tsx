@@ -18,10 +18,8 @@ import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import { useRouter } from 'next/router';
 import Models from '@/src/imports/models.import';
 import IconPlayCircle from '@/components/Icon/IconPlayCircle';
-import IconArrowBackward from '@/components/Icon/IconArrowBackward';
-import IconArrowForward from '@/components/Icon/IconArrowForward';
 
-const ShareHoldingPatterns = () => {
+const RegulationOfTheLodr = () => {
     const router = useRouter();
 
     const { menuId } = router.query;
@@ -42,52 +40,26 @@ const ShareHoldingPatterns = () => {
         reference: '',
         subject: '',
         filterYear: '',
-        currentPage: 1,
-        totalRecords: 0,
-        next: null,
-        previous: null,
     });
 
     useEffect(() => {
-        getTableList(state.currentPage);
+        getTableList();
     }, [state.selectedTab, menuId, state.filterYear]);
 
-    const getTableList = async (page:any) => {
-            try {
-                setState({ tableLoading: true });
-                const body = {
-                    year: state.filterYear?.value,
-                };
-                const res: any = await Models.auth.main_document_list(menuId, body,page);
-                console.log('✌️res --->', res);
-                setState({ 
-                    tableLoading: false, 
-                    tableList: res?.results,
-                    totalRecords: res.count,
-                    next: res.next,
-                    previous: res.previous,
-                    currentPage: page,
-                 });
-            } catch (error) {
-                setState({ tableLoading: false });
-    
-                console.log('✌️error --->', error);
-            }
-        };
+    const getTableList = async () => {
+        try {
+            setState({ tableLoading: true });
+            const body = {
+                year: state.filterYear?.value,
+            };
+            const res: any = await Models.auth.main_document_list(menuId, body);
+            setState({ tableLoading: false, tableList: res?.results });
+        } catch (error) {
+            setState({ tableLoading: false });
 
-        const handleNextPage = () => {
-            if (state.next) {
-                const newPage = state.currentPage + 1;
-                getTableList(newPage);
-            }
-        };
-    
-        const handlePreviousPage = () => {
-            if (state.previous) {
-                const newPage = state.currentPage - 1;
-                getTableList(newPage);
-            }
-        };
+            console.log('✌️error --->', error);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -142,7 +114,7 @@ const ShareHoldingPatterns = () => {
                 formData.append(`files[${index}].name`, file.name); // Append the custom name or default to the file name
             });
             const res = await Models.auth.add_document(formData);
-            getTableList(state.currentPage);
+            getTableList();
             setState({
                 submitLoading: false,
                 isOpen: false,
@@ -229,11 +201,11 @@ const ShareHoldingPatterns = () => {
                         file: item.file,
                     };
                     const res = await Models.auth.add_document_file(body);
-                    getTableList(state.currentPage);
+                    getTableList();
                 });
             }
             const res = await Models.auth.update_document(state.updateId, formData);
-            getTableList(state.currentPage);
+            getTableList();
             setState({
                 submitLoading: false,
                 isOpen: false,
@@ -307,7 +279,7 @@ const ShareHoldingPatterns = () => {
             async () => {
                 try {
                     const res = await Models.auth.delete_document(record?.id);
-                    getTableList(state.currentPage);
+                    getTableList();
 
                     Swal.fire('Deleted!', 'Your data has been deleted.', 'success');
                 } catch (error) {
@@ -355,7 +327,7 @@ const ShareHoldingPatterns = () => {
         <div>
             <div className="panel mb-5 flex items-center justify-between gap-5">
                 <div className="flex items-center gap-5">
-                    <h5 className="text-lg font-semibold dark:text-white-light">Share Holding Pattern</h5>
+                    <h5 className="text-lg font-semibold dark:text-white-light">Regulation 46 of the lodr</h5>
                 </div>
                 <div>
                     <button type="button" className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto" onClick={() => setState({ isOpen: true, update: false, name: '', updateId: '' })}>
@@ -443,14 +415,6 @@ const ShareHoldingPatterns = () => {
                     paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                 />
             </div>
-            <div className="mt-5 flex justify-end gap-3">
-                        <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowBackward />
-                        </button>
-                        <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowForward />
-                        </button>
-                    </div>
 
             <Modal
                 addHeader={state.updateId ? 'Update' : `Add`}
@@ -597,4 +561,4 @@ const ShareHoldingPatterns = () => {
     );
 };
 
-export default PrivateRouter(ShareHoldingPatterns);
+export default PrivateRouter(RegulationOfTheLodr);
