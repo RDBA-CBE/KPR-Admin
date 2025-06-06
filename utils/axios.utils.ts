@@ -3,7 +3,6 @@ import axios from 'axios';
 
 export const createApiInstance = () => {
     let baseURL = 'http://121.200.52.133:8003/api/';
-    // let baseURL = 'https://vqbv6q92-8000.inc1.devtunnels.ms/api/';
 
     const api = axios.create({
         baseURL,
