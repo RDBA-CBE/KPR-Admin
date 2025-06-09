@@ -2,7 +2,8 @@
 import axios from 'axios';
 
 export const createApiInstance = () => {
-    let baseURL = 'http://121.200.52.133:8003/api/';
+    // let baseURL = 'http://121.200.52.133:8003/api/';
+    let baseURL = 'https://bkend.kprmilllimited.com/api/';
 
     const api = axios.create({
         baseURL,
