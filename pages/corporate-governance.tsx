@@ -20,6 +20,7 @@ import Models from '@/src/imports/models.import';
 import IconPlayCircle from '@/components/Icon/IconPlayCircle';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
+import { monthOptions } from '@/utils/constant.utils';
 
 const CorporateGovernance = () => {
     const router = useRouter();
@@ -46,34 +47,35 @@ const CorporateGovernance = () => {
         totalRecords: 0,
         next: null,
         previous: null,
+        monthError: '',
+        monthSection: '',
     });
 
     useEffect(() => {
         getTableList(state.currentPage);
     }, [state.selectedTab, menuId, state.filterYear]);
 
-    const getTableList = async (page:any) => {
-           try {
-               setState({ tableLoading: true });
-               const body = {
-                   year: state.filterYear?.value,
-               };
-               const res: any = await Models.auth.main_document_list(menuId, body,page);
-               console.log('✌️res --->', res);
-               setState({ 
-                   tableLoading: false, 
-                   tableList: res?.results,
-                   totalRecords: res.count,
-                   next: res.next,
-                   previous: res.previous,
-                   currentPage: page,
-                });
-           } catch (error) {
-               setState({ tableLoading: false });
-   
-               console.log('✌️error --->', error);
-           }
-       };
+    const getTableList = async (page: any) => {
+        try {
+            setState({ tableLoading: true });
+            const body = {
+                year: state.filterYear?.value,
+            };
+            const res: any = await Models.auth.main_document_list(menuId, body, page);
+            setState({
+                tableLoading: false,
+                tableList: res?.results,
+                totalRecords: res.count,
+                next: res.next,
+                previous: res.previous,
+                currentPage: page,
+            });
+        } catch (error) {
+            setState({ tableLoading: false });
+
+            console.log('✌️error --->', error);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -87,6 +89,11 @@ const CorporateGovernance = () => {
 
             if (state.yearSection == '') {
                 setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            if (state.monthSection == '') {
+                setState({ monthError: 'Please select month ', submitLoading: false });
                 return;
             }
 
@@ -113,6 +120,7 @@ const CorporateGovernance = () => {
                 reference: state.reference,
                 subject: state.subject,
                 submenu: menuId,
+                month: state.monthSection?.value,
             };
 
             const formData = new FormData();
@@ -122,6 +130,7 @@ const CorporateGovernance = () => {
             formData.append('year', body.year);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
+            formData.append('month', body.month);
 
             outputArray.forEach((file, index) => {
                 formData.append(`files[${index}].file`, file?.file); // Append the file
@@ -141,6 +150,8 @@ const CorporateGovernance = () => {
                 errorMessage: '',
                 reference: '',
                 subject: '',
+                monthError: '',
+                monthSection: '',
             });
         } catch (error) {
             setState({ submitLoading: false });
@@ -159,6 +170,11 @@ const CorporateGovernance = () => {
 
             if (state.yearSection == '') {
                 setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            if (state.monthSection == '') {
+                setState({ monthError: 'Please select month ', submitLoading: false });
                 return;
             }
 
@@ -197,6 +213,7 @@ const CorporateGovernance = () => {
                 reference: state.reference,
                 subject: state.subject,
                 submenu: menuId,
+                month: state.monthSection?.value,
             };
 
             const formData = new FormData();
@@ -206,6 +223,7 @@ const CorporateGovernance = () => {
             formData.append('year', body.year);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
+            formData.append('month', body.month);
 
             if (withoutId?.length > 0) {
                 withoutId?.map(async (item, index) => {
@@ -232,6 +250,8 @@ const CorporateGovernance = () => {
                 errorMessage: '',
                 reference: '',
                 subject: '',
+                monthError: '',
+                monthSection: '',
             });
         } catch (error) {
             setState({ submitLoading: false });
@@ -321,6 +341,7 @@ const CorporateGovernance = () => {
                     },
                 };
             });
+            const find = monthOptions?.find((item) => item?.value == row?.month);
 
             setState({
                 isOpen: true,
@@ -331,6 +352,7 @@ const CorporateGovernance = () => {
                 reference: row?.reference,
                 subject: row?.subject,
                 uploadedFiles: fileData,
+                monthSection: find,
             });
         } catch (error) {
             console.log('✌️error --->', error);
@@ -358,7 +380,27 @@ const CorporateGovernance = () => {
                     <h5 className="text-lg font-semibold dark:text-white-light">Corporate Governance</h5>
                 </div>
                 <div>
-                    <button type="button" className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto" onClick={() => setState({ isOpen: true, update: false, name: '', updateId: '' })}>
+                    <button
+                        type="button"
+                        className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto"
+                        onClick={() =>
+                            setState({
+                                isOpen: true,
+                                update: false,
+                                name: '',
+                                updateId: '',
+                                nameError: '',
+                                yearError: '',
+                                yearSection: '',
+                                monthError: '',
+                                monthSection: '',
+                                files: [{ subtitle: '', file: null }],
+                                errorMessage: '',
+                                reference: '',
+                                subject: '',
+                            })
+                        }
+                    >
                         + Create
                     </button>
                 </div>
@@ -382,6 +424,13 @@ const CorporateGovernance = () => {
                     fetching={state.tableLoading}
                     columns={[
                         { accessor: 'title', title: 'Title' },
+                        {
+                            accessor: 'month',
+                            render: (row) => {
+                                const find = monthOptions?.find((item) => item?.value == row?.month);
+                                return <div>{find?.label}</div>;
+                            },
+                        },
                         { accessor: 'year' },
                         {
                             accessor: 'link',
@@ -445,13 +494,13 @@ const CorporateGovernance = () => {
             </div>
 
             <div className="mt-5 flex justify-end gap-3">
-                        <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowBackward />
-                        </button>
-                        <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowForward />
-                        </button>
-                    </div>
+                <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
+                    <IconArrowBackward />
+                </button>
+                <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
+                    <IconArrowForward />
+                </button>
+            </div>
 
             <Modal
                 addHeader={state.updateId ? 'Update' : `Add`}
@@ -468,6 +517,8 @@ const CorporateGovernance = () => {
                         reference: '',
                         subject: '',
                         updateId: '',
+                        monthError: '',
+                        monthSection: '',
                     })
                 }
                 renderComponent={() => (
@@ -517,19 +568,36 @@ const CorporateGovernance = () => {
                                     />
                                 </div>
 
-                                <div className=" mt-3" style={{ width: '100%' }}>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                                        Year <span className="text-red-500">*</span>
-                                    </label>
-                                    <Select
-                                        placeholder="Select an option"
-                                        value={state.yearSection}
-                                        onChange={(val) => setState({ yearSection: val, yearError: '' })}
-                                        options={yearOptions}
-                                        isSearchable={true}
-                                    />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Year <span className="text-red-500">*</span>
+                                        </label>
+                                        <Select
+                                            placeholder="Select a year"
+                                            value={state.yearSection}
+                                            onChange={(val) => setState({ yearSection: val, yearError: '' })}
+                                            options={yearOptions}
+                                            isSearchable={true}
+                                            menuPosition="fixed"
+                                        />
+                                        {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
+                                    </div>
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Month <span className="text-red-500">*</span>
+                                        </label>
+                                        <Select
+                                            placeholder="Select a month"
+                                            value={state.monthSection}
+                                            onChange={(val) => setState({ monthSection: val, monthError: '' })}
+                                            options={monthOptions}
+                                            isSearchable={true}
+                                            menuPosition="fixed"
+                                        />
+                                        {state.monthError && <div className="mb-2 text-red-500">{state.monthError}</div>}
+                                    </div>
                                 </div>
-                                {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
                             </div>
                             {state.files?.length > 0 && (
                                 <div className="mt-4">

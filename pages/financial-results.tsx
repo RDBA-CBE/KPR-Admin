@@ -21,6 +21,7 @@ import fs from 'fs';
 import IconPlayCircle from '@/components/Icon/IconPlayCircle';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
+import { monthOptions } from '@/utils/constant.utils';
 
 const FinancialResults = () => {
     const router = useRouter();
@@ -56,6 +57,8 @@ const FinancialResults = () => {
         totalRecords: 0,
         next: null,
         previous: null,
+        monthError: '',
+        monthSection: '',
     });
 
     useEffect(() => {
@@ -64,19 +67,18 @@ const FinancialResults = () => {
 
     useEffect(() => {
         getSubMenu();
-    }, [menuId,]);
+    }, [menuId]);
 
     const getSubMenu = async () => {
         try {
             setState({ loading: true });
-            const res: any = await Models.auth.sub_menu(menuId,);
-            setState({ 
-                sidebar: res?.results, 
+            const res: any = await Models.auth.sub_menu(menuId);
+            setState({
+                sidebar: res?.results,
                 loading: false,
-             });
+            });
         } catch (error) {
-            setState({ loading: false ,});
-            
+            setState({ loading: false });
 
             console.log('✌️error --->', error);
         }
@@ -94,6 +96,11 @@ const FinancialResults = () => {
 
             if (state.yearSection == '') {
                 setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            if (state.monthSection == '') {
+                setState({ monthError: 'Please select month ', submitLoading: false });
                 return;
             }
 
@@ -120,6 +127,7 @@ const FinancialResults = () => {
                 reference: state.reference,
                 subject: state.subject,
                 submenu: state.selectedMenu,
+                month: state.monthSection?.value,
             };
 
             const formData = new FormData();
@@ -129,6 +137,7 @@ const FinancialResults = () => {
             formData.append('year', body.year);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
+            formData.append('month', body.month);
 
             outputArray.forEach((file, index) => {
                 formData.append(`files[${index}].file`, file?.file); // Append the file
@@ -137,7 +146,21 @@ const FinancialResults = () => {
             const res = await Models.auth.add_document(formData);
             getTableList(state.currentPage);
 
-            setState({ submitLoading: false, isOpen: false, updateId: '' });
+            setState({
+                submitLoading: false,
+                isOpen: false,
+                updateId: '',
+                name: '',
+                nameError: '',
+                yearError: '',
+                yearSection: '',
+                monthError: '',
+                monthSection: '',
+                files: [{ subtitle: '', file: null }],
+                errorMessage: '',
+                reference: '',
+                subject: '',
+            });
         } catch (error) {
             setState({ submitLoading: false });
             console.error('Error:', error);
@@ -155,6 +178,11 @@ const FinancialResults = () => {
 
             if (state.yearSection == '') {
                 setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            if (state.monthSection == '') {
+                setState({ monthError: 'Please select month ', submitLoading: false });
                 return;
             }
 
@@ -193,6 +221,7 @@ const FinancialResults = () => {
                 reference: state.reference,
                 subject: state.subject,
                 submenu: state.selectedMenu,
+                month: state.monthSection?.value,
             };
 
             const formData = new FormData();
@@ -200,6 +229,7 @@ const FinancialResults = () => {
             formData.append('title', body.title);
             formData.append('submenu', body.submenu);
             formData.append('year', body.year);
+            formData.append('month', body.month);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
 
@@ -228,6 +258,8 @@ const FinancialResults = () => {
                 errorMessage: '',
                 reference: '',
                 subject: '',
+                monthError: '',
+                monthSection: '',
             });
         } catch (error) {
             setState({ submitLoading: false });
@@ -309,16 +341,16 @@ const FinancialResults = () => {
             const body = {
                 year: state.filterYear?.value,
             };
-            const res: any = await Models.auth.document_list(state.selectedMenu, body,page);
+            const res: any = await Models.auth.document_list(state.selectedMenu, body, page);
             console.log('✌️res --->', res);
-            setState({ 
-                tableLoading: false, 
+            setState({
+                tableLoading: false,
                 tableList: res?.results,
                 totalRecords: res.count,
                 next: res.next,
                 previous: res.previous,
                 currentPage: page,
-             });
+            });
         } catch (error) {
             setState({ tableLoading: false });
 
@@ -327,6 +359,7 @@ const FinancialResults = () => {
     };
 
     const setTableData = async (row) => {
+        console.log('✌️row --->', row);
         try {
             const fileData = row?.files?.map((item) => {
                 const fileName = item?.file.split('/').pop();
@@ -341,6 +374,8 @@ const FinancialResults = () => {
                 };
             });
 
+            const find = monthOptions?.find((item) => item?.value == row?.month);
+
             setState({
                 isOpen: true,
                 files: fileData,
@@ -350,6 +385,7 @@ const FinancialResults = () => {
                 reference: row?.reference,
                 subject: row?.subject,
                 uploadedFiles: fileData,
+                monthSection: find,
             });
         } catch (error) {
             console.log('✌️error --->', error);
@@ -388,6 +424,8 @@ const FinancialResults = () => {
                                 nameError: '',
                                 yearError: '',
                                 yearSection: '',
+                                monthError: '',
+                                monthSection: '',
                                 files: [{ subtitle: '', file: null }],
                                 errorMessage: '',
                                 reference: '',
@@ -437,12 +475,20 @@ const FinancialResults = () => {
                         customLoader={<Loader />}
                         columns={[
                             { accessor: 'title', title: 'Title' },
+
+                            {
+                                accessor: 'month',
+                                render: (row) => {
+                                    const find = monthOptions?.find((item) => item?.value == row?.month);
+                                    return <div>{find?.label}</div>;
+                                },
+                            },
                             { accessor: 'year' },
 
                             {
                                 accessor: 'link',
                                 title: 'Link',
-                                width: 400,
+                                // width: 400,
                                 render: (item: any) => (
                                     <div className="flex flex-row flex-wrap gap-4">
                                         {item?.files?.map((fileItem: any, index: number) => (
@@ -489,7 +535,6 @@ const FinancialResults = () => {
                         page={null}
                         onPageChange={(p) => setState({ page: p })}
                         recordsPerPageOptions={state.PAGE_SIZES}
-                   
                         onRecordsPerPageChange={(size) => setState({ pageSize: size })}
                         sortStatus={null}
                         onSortStatusChange={() => {}}
@@ -499,17 +544,15 @@ const FinancialResults = () => {
                         paginationText={({ from, to, totalRecords }) => `Showing ${from} to ${to} of ${state?.totalRecords} entries`}
                     />
                 </div>
-
-
             </div>
             <div className="mt-5 flex justify-end gap-3">
-                        <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowBackward />
-                        </button>
-                        <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
-                            <IconArrowForward />
-                        </button>
-                    </div>
+                <button disabled={!state.previous} onClick={handlePreviousPage} className={`btn ${!state.previous ? 'btn-disabled' : 'btn-primary'}`}>
+                    <IconArrowBackward />
+                </button>
+                <button disabled={!state.next} onClick={handleNextPage} className={`btn ${!state.next ? 'btn-disabled' : 'btn-primary'}`}>
+                    <IconArrowForward />
+                </button>
+            </div>
             <Modal
                 addHeader={state.updateId ? 'Update' : `Add`}
                 open={state.isOpen}
@@ -520,6 +563,8 @@ const FinancialResults = () => {
                         nameError: '',
                         yearError: '',
                         yearSection: '',
+                        monthError: '',
+                        monthSection: '',
                         files: [{ subtitle: '', file: null }],
                         errorMessage: '',
                         reference: '',
@@ -574,19 +619,36 @@ const FinancialResults = () => {
                                         onChange={(e) => setState({ subject: e.target.value })}
                                     />
                                 </div>
-                                <div className=" mt-3" style={{ width: '100%' }}>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                                        Year <span className="text-red-500">*</span>
-                                    </label>
-                                    <Select
-                                        placeholder="Select an option"
-                                        value={state.yearSection}
-                                        onChange={(val) => setState({ yearSection: val, yearError: '' })}
-                                        options={yearOptions}
-                                        isSearchable={true}
-                                    />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Year <span className="text-red-500">*</span>
+                                        </label>
+                                        <Select
+                                            placeholder="Select a year"
+                                            value={state.yearSection}
+                                            onChange={(val) => setState({ yearSection: val, yearError: '' })}
+                                            options={yearOptions}
+                                            isSearchable={true}
+                                            menuPosition="fixed"
+                                        />
+                                        {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
+                                    </div>
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Month <span className="text-red-500">*</span>
+                                        </label>
+                                        <Select
+                                            placeholder="Select a month"
+                                            value={state.monthSection}
+                                            onChange={(val) => setState({ monthSection: val, monthError: '' })}
+                                            options={monthOptions}
+                                            isSearchable={true}
+                                            menuPosition="fixed"
+                                        />
+                                        {state.monthError && <div className="mb-2 text-red-500">{state.monthError}</div>}
+                                    </div>
                                 </div>
-                                {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
                             </div>
                             {state.files?.length > 0 && (
                                 <div className="mt-4">
@@ -655,4 +717,3 @@ const FinancialResults = () => {
     );
 };
 export default PrivateRouter(FinancialResults);
-

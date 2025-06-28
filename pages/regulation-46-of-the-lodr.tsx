@@ -18,6 +18,7 @@ import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import { useRouter } from 'next/router';
 import Models from '@/src/imports/models.import';
 import IconPlayCircle from '@/components/Icon/IconPlayCircle';
+import { monthOptions } from '@/utils/constant.utils';
 
 const RegulationOfTheLodr = () => {
     const router = useRouter();
@@ -40,6 +41,8 @@ const RegulationOfTheLodr = () => {
         reference: '',
         subject: '',
         filterYear: '',
+        monthError: '',
+        monthSection: '',
     });
 
     useEffect(() => {
@@ -52,7 +55,7 @@ const RegulationOfTheLodr = () => {
             const body = {
                 year: state.filterYear?.value,
             };
-            const res: any = await Models.auth.main_document_list(menuId, body,1);
+            const res: any = await Models.auth.main_document_list(menuId, body, 1);
             setState({ tableLoading: false, tableList: res?.results });
         } catch (error) {
             setState({ tableLoading: false });
@@ -73,6 +76,11 @@ const RegulationOfTheLodr = () => {
 
             if (state.yearSection == '') {
                 setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            if (state.monthSection == '') {
+                setState({ monthError: 'Please select month ', submitLoading: false });
                 return;
             }
 
@@ -99,6 +107,7 @@ const RegulationOfTheLodr = () => {
                 reference: state.reference,
                 subject: state.subject,
                 submenu: menuId,
+                month: state.monthSection?.value,
             };
 
             const formData = new FormData();
@@ -108,6 +117,7 @@ const RegulationOfTheLodr = () => {
             formData.append('year', body.year);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
+            formData.append('month', body.month);
 
             outputArray.forEach((file, index) => {
                 formData.append(`files[${index}].file`, file?.file); // Append the file
@@ -127,6 +137,8 @@ const RegulationOfTheLodr = () => {
                 errorMessage: '',
                 reference: '',
                 subject: '',
+                monthError: '',
+                monthSection: '',
             });
         } catch (error) {
             setState({ submitLoading: false });
@@ -145,6 +157,11 @@ const RegulationOfTheLodr = () => {
 
             if (state.yearSection == '') {
                 setState({ yearError: 'Please select year ', submitLoading: false });
+                return;
+            }
+
+            if (state.monthSection == '') {
+                setState({ monthError: 'Please select month ', submitLoading: false });
                 return;
             }
 
@@ -183,6 +200,7 @@ const RegulationOfTheLodr = () => {
                 reference: state.reference,
                 subject: state.subject,
                 submenu: menuId,
+                month: state.monthSection?.value,
             };
 
             const formData = new FormData();
@@ -192,6 +210,7 @@ const RegulationOfTheLodr = () => {
             formData.append('year', body.year);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
+            formData.append('month', body.month);
 
             if (withoutId?.length > 0) {
                 withoutId?.map(async (item, index) => {
@@ -218,6 +237,8 @@ const RegulationOfTheLodr = () => {
                 errorMessage: '',
                 reference: '',
                 subject: '',
+                monthError: '',
+                monthSection: '',
             });
         } catch (error) {
             setState({ submitLoading: false });
@@ -308,6 +329,8 @@ const RegulationOfTheLodr = () => {
                 };
             });
 
+            const find = monthOptions?.find((item) => item?.value == row?.month);
+
             setState({
                 isOpen: true,
                 files: fileData,
@@ -317,6 +340,7 @@ const RegulationOfTheLodr = () => {
                 reference: row?.reference,
                 subject: row?.subject,
                 uploadedFiles: fileData,
+                monthSection: find,
             });
         } catch (error) {
             console.log('✌️error --->', error);
@@ -330,7 +354,27 @@ const RegulationOfTheLodr = () => {
                     <h5 className="text-lg font-semibold dark:text-white-light">Regulation 46 of the lodr</h5>
                 </div>
                 <div>
-                    <button type="button" className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto" onClick={() => setState({ isOpen: true, update: false, name: '', updateId: '' })}>
+                    <button
+                        type="button"
+                        className="btn w-full bg-[#642a10]  text-white md:mb-0 md:w-auto"
+                        onClick={() =>
+                            setState({
+                                isOpen: true,
+                                update: false,
+                                name: '',
+                                updateId: '',
+                                nameError: '',
+                                yearError: '',
+                                yearSection: '',
+                                monthError: '',
+                                monthSection: '',
+                                files: [{ subtitle: '', file: null }],
+                                errorMessage: '',
+                                reference: '',
+                                subject: '',
+                            })
+                        }
+                    >
                         + Create
                     </button>
                 </div>
@@ -354,11 +398,17 @@ const RegulationOfTheLodr = () => {
                     fetching={state.tableLoading}
                     columns={[
                         { accessor: 'title', title: 'Title' },
+                        {
+                            accessor: 'month',
+                            render: (row) => {
+                                const find = monthOptions?.find((item) => item?.value == row?.month);
+                                return <div>{find?.label}</div>;
+                            },
+                        },
                         { accessor: 'year' },
                         {
                             accessor: 'link',
                             title: 'Link',
-                            width: 400,
                             render: (item: any) => (
                                 <div className="flex flex-row flex-wrap gap-4">
                                     {item?.files?.map((fileItem: any, index: number) => (
@@ -431,6 +481,8 @@ const RegulationOfTheLodr = () => {
                         reference: '',
                         subject: '',
                         updateId: '',
+                        monthError: '',
+                        monthSection: '',
                     })
                 }
                 renderComponent={() => (
@@ -480,19 +532,36 @@ const RegulationOfTheLodr = () => {
                                     />
                                 </div>
 
-                                <div className=" mt-3" style={{ width: '100%' }}>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                                        Year <span className="text-red-500">*</span>
-                                    </label>
-                                    <Select
-                                        placeholder="Select an option"
-                                        value={state.yearSection}
-                                        onChange={(val) => setState({ yearSection: val, yearError: '' })}
-                                        options={yearOptions}
-                                        isSearchable={true}
-                                    />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Year <span className="text-red-500">*</span>
+                                        </label>
+                                        <Select
+                                            placeholder="Select a year"
+                                            value={state.yearSection}
+                                            onChange={(val) => setState({ yearSection: val, yearError: '' })}
+                                            options={yearOptions}
+                                            isSearchable={true}
+                                            menuPosition="fixed"
+                                        />
+                                        {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
+                                    </div>
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Month <span className="text-red-500">*</span>
+                                        </label>
+                                        <Select
+                                            placeholder="Select a month"
+                                            value={state.monthSection}
+                                            onChange={(val) => setState({ monthSection: val, monthError: '' })}
+                                            options={monthOptions}
+                                            isSearchable={true}
+                                            menuPosition="fixed"
+                                        />
+                                        {state.monthError && <div className="mb-2 text-red-500">{state.monthError}</div>}
+                                    </div>
                                 </div>
-                                {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
                             </div>
                             {state.files?.length > 0 && (
                                 <div className="mt-4">

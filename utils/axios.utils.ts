@@ -1,126 +1,104 @@
 'use client';
-import axios from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-export const createApiInstance = () => {
-    // let baseURL = 'http://121.200.52.133:8003/api/';
-    let baseURL = 'https://bkend.kprmilllimited.com/api/';
+let api: AxiosInstance | null = null;
+let isRefreshing = false;
+let failedQueue: any[] = [];
 
-    const api = axios.create({
-        baseURL,
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
     });
 
-    let refreshPromise = null;
+    failedQueue = [];
+};
 
-    const getAccessToken = () => localStorage.getItem('token');
-    const getRefreshToken = () => localStorage.getItem('refreshToken');
-    const setAccessToken = (token) => localStorage.setItem('token', token);
-    const setRefreshToken = (token) => localStorage.setItem('refreshToken', token);
-    const clearTokens = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-    };
+export const instance = (): AxiosInstance => {
+    if (api) return api;
 
-    const redirectToLogin = () => {
-        clearTokens();
-        window.location.href = '/signin';
-    };
-    const refreshToken = () => {
-        if (!refreshPromise) {
-            refreshPromise = new Promise((resolve, reject) => {
-                const refreshToken = getRefreshToken();
-                console.log('Stored refreshToken:', refreshToken);
+    api = axios.create({
+        baseURL: 'https://bkend.kprmilllimited.com/api/',
+    });
 
-                if (!refreshToken) {
-                    console.log('No refresh token found. Redirecting to login...');
-                    clearAuthData();
-                    // redirectToLogin();
-                    reject('No refresh token');
-                    return;
-                }
-
-                axios
-                    .post(`${baseURL}token/refresh/`, { refresh: refreshToken })
-                    .then((response) => {
-                        console.log('Refresh token response:', response.data);
-
-                        setAccessToken(response.data.access);
-                        setRefreshToken(response.data.refresh);
-
-                        resolve(response.data.access);
-                    })
-                    .catch((error) => {
-                        if (error.response) {
-                            console.error('Refresh token failed:', error.response.data);
-
-                            if (error.response.data.code === 'token_not_valid') {
-                                console.log('Token expired. Logging out...');
-                                clearAuthData();
-                                // redirectToLogin();
-                            }
-                        } else if (error.request) {
-                            console.error('No response received:', error.request);
-                        } else {
-                            console.error('Error setting up request:', error.message);
-                        }
-
-                        reject(error);
-                    })
-                    .finally(() => {
-                        refreshPromise = null;
-                    });
-            });
-        }
-
-        return refreshPromise;
-    };
-
-    const clearAuthData = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-    };
-
+    // Request interceptor
     api.interceptors.request.use(
-        (config) => {
-            const token = getAccessToken();
-            if (token) {
-                config.headers['Authorization'] = `Bearer ${token}`;
+        (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+            const accessToken = localStorage.getItem('token');
+            if (accessToken && config.headers) {
+                config.headers['Authorization'] = `Bearer ${accessToken}`;
             }
             return config;
         },
-        (error) => Promise.reject(error)
+        (error: AxiosError) => Promise.reject(error)
     );
 
+    // Response interceptor
     api.interceptors.response.use(
         (response) => response,
-        (error) => {
-            const originalRequest = error.config;
-            if (error?.response?.data) {
-                return Promise.reject(error);
-            } else {
-                if (error.response?.status === 401 && !originalRequest._retry) {
-                    originalRequest._retry = true;
+        async (error: AxiosError | any) => {
+            const originalRequest: any = error.config;
 
-                    return refreshToken()
-                        .then((newAccessToken) => {
-                            if (!newAccessToken) {
-                                redirectToLogin();
-                                return Promise.reject('Failed to refresh token');
-                            }
-                            originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                            return api(originalRequest);
-                        })
-                        .catch((err) => {
-                            redirectToLogin();
-                            return Promise.reject(err);
-                        });
+            if (error.response?.data?.code === 'token_not_valid' && !originalRequest._retry) {
+                originalRequest._retry = true;
+
+                const refreshToken = localStorage.getItem('refreshToken');
+
+                if (!refreshToken) {
+                    window.location.href = '/signin';
+                    localStorage.clear();
+
+                    return Promise.reject(error);
                 }
 
-                return Promise.reject(error);
+                if (isRefreshing) {
+                    return new Promise((resolve, reject) => {
+                        failedQueue.push({
+                            resolve: (token: string) => {
+                                originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                                resolve(api(originalRequest));
+                            },
+                            reject: (err: any) => reject(err),
+                        });
+                    });
+                }
+
+                isRefreshing = true;
+
+                return new Promise(async (resolve, reject) => {
+                    try {
+                        const response = await axios.post('https://bkend.kprmilllimited.com/api/auth/token/refresh/', {
+                            refresh: refreshToken,
+                        });
+
+                        const { access, refresh } = response.data;
+                        localStorage.setItem('token', access);
+                        localStorage.setItem('refreshToken', refresh);
+
+                        api!.defaults.headers.common['Authorization'] = 'Bearer ' + access;
+                        originalRequest.headers['Authorization'] = 'Bearer ' + access;
+
+                        processQueue(null, access);
+                        resolve(api!(originalRequest));
+                    } catch (err) {
+                        processQueue(err, null);
+                        localStorage.clear();
+                        window.location.href = '/signin';
+                        reject(err);
+                    } finally {
+                        isRefreshing = false;
+                    }
+                });
             }
+
+            return Promise.reject(error);
         }
     );
 
     return api;
 };
 
-export default createApiInstance;
+export default instance;
