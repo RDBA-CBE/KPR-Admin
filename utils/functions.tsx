@@ -563,7 +563,6 @@ export const PaymentStatus = (status: any) => {
     }
 };
 
-
 export const transformData = (data) => {
     const baseUrl = 'https://file.kprmilllimited.com/file/wp-content/uploads/cfdb7_uploads/';
     const result = [];
@@ -576,16 +575,30 @@ export const transformData = (data) => {
             if (data[fileKey]) {
                 result.push({
                     list: data[key],
-                    "file-pdf-cfdb7_file": baseUrl + data[fileKey],
+                    'file-pdf-cfdb7_file': baseUrl + data[fileKey],
                 });
             } else {
                 result.push({
                     list: data[key],
-                    "file-pdf-cfdb7_file": '',
+                    'file-pdf-cfdb7_file': '',
                 });
             }
         }
     });
 
     return result;
+};
+
+export const yearOption = () => {
+    const currentYear = new Date().getFullYear();
+
+    const yearOptions = Array.from({ length: 25 }, (_, index) => {
+        const startYear = currentYear + index;
+        return {
+            value: startYear, // Integer (e.g., 2023)
+            label: `${startYear} - ${startYear + 1}`, // String (e.g., "2023 - 2024")
+        };
+    });
+
+    return yearOptions;
 };

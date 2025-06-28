@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import axios from 'axios';
-import { API, Failure, Success, parseHTMLContent, showDeleteAlert, transformData, useSetState } from '@/utils/functions';
+import { API, Failure, Success, parseHTMLContent, showDeleteAlert, transformData, useSetState, yearOption } from '@/utils/functions';
 import { DataTable } from 'mantine-datatable';
 import Tippy from '@tippyjs/react';
 import IconPencil from '@/components/Icon/IconPencil';
@@ -106,10 +106,10 @@ const ShareHoldingPatterns = () => {
                 return;
             }
 
-            if (state.monthSection == '') {
-                setState({ monthError: 'Please select month ', submitLoading: false });
-                return;
-            }
+            // if (state.monthSection == '') {
+            //     setState({ monthError: 'Please select month ', submitLoading: false });
+            //     return;
+            // }
 
             for (const file of state.files) {
                 if (!file.file) {
@@ -134,7 +134,7 @@ const ShareHoldingPatterns = () => {
                 reference: state.reference,
                 subject: state.subject,
                 submenu: menuId,
-                month: state.monthSection?.value,
+                // month: state.monthSection?.value,
             };
 
             const formData = new FormData();
@@ -144,7 +144,7 @@ const ShareHoldingPatterns = () => {
             formData.append('year', body.year);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
-            formData.append('month', body.month);
+            // formData.append('month', body.month);
 
             outputArray.forEach((file, index) => {
                 formData.append(`files[${index}].file`, file?.file); // Append the file
@@ -187,10 +187,10 @@ const ShareHoldingPatterns = () => {
                 return;
             }
 
-            if (state.monthSection == '') {
-                setState({ monthError: 'Please select month ', submitLoading: false });
-                return;
-            }
+            // if (state.monthSection == '') {
+            //     setState({ monthError: 'Please select month ', submitLoading: false });
+            //     return;
+            // }
 
             for (const file of state.files) {
                 if (!file.file) {
@@ -227,7 +227,7 @@ const ShareHoldingPatterns = () => {
                 reference: state.reference,
                 subject: state.subject,
                 submenu: menuId,
-                month: state.monthSection?.value,
+                // month: state.monthSection?.value,
             };
 
             const formData = new FormData();
@@ -235,7 +235,7 @@ const ShareHoldingPatterns = () => {
             formData.append('title', body.title);
             formData.append('main_menu', body.submenu);
             formData.append('year', body.year);
-            formData.append('month', body.month);
+            // formData.append('month', body.month);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
 
@@ -317,11 +317,6 @@ const ShareHoldingPatterns = () => {
         });
     };
 
-    const yearOptions = [];
-    for (let year = 2001; year <= 2030; year++) {
-        yearOptions.push({ value: year, label: year.toString() });
-    }
-
     const deleteData = (record) => {
         showDeleteAlert(
             async () => {
@@ -356,18 +351,20 @@ const ShareHoldingPatterns = () => {
                 };
             });
 
-            const find = monthOptions?.find((item) => item?.value == row?.month);
+            const years = yearOption();
+
+            const find = years?.find((item) => item?.value == row?.year);
 
             setState({
                 isOpen: true,
                 files: fileData,
                 updateId: row?.id,
                 name: row?.title,
-                yearSection: { value: row?.year, label: row?.year },
+                yearSection: find,
                 reference: row?.reference,
                 subject: row?.subject,
                 uploadedFiles: fileData,
-                monthSection: find,
+                // monthSection: find,
             });
         } catch (error) {
             console.log('✌️error --->', error);
@@ -412,7 +409,7 @@ const ShareHoldingPatterns = () => {
                         placeholder="Filter by year"
                         value={state.filterYear}
                         onChange={(val) => setState({ filterYear: val, yearError: '' })}
-                        options={yearOptions}
+                        options={yearOption()}
                         isSearchable={true}
                         isClearable={true}
                     />
@@ -426,13 +423,13 @@ const ShareHoldingPatterns = () => {
                     columns={[
                         { accessor: 'title', title: 'Title' },
                         {
-                            accessor: 'month',
-                            render: (row) => {
-                                const find = monthOptions?.find((item) => item?.value == row?.month);
-                                return <div>{find?.label}</div>;
-                            },
+                            accessor: 'year',
+                            render: (row) => (
+                                <div className="flex items-center">
+                                    <div className="line-clamp-2 break-words">{`${row.year} - ${row.year + 1}`}</div>
+                                </div>
+                            ),
                         },
-                        { accessor: 'year' },
                         {
                             accessor: 'link',
                             title: 'Link',
@@ -567,35 +564,19 @@ const ShareHoldingPatterns = () => {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="mt-3">
-                                        <label className="block text-sm font-medium text-gray-700">
-                                            Year <span className="text-red-500">*</span>
-                                        </label>
-                                        <Select
-                                            placeholder="Select a year"
-                                            value={state.yearSection}
-                                            onChange={(val) => setState({ yearSection: val, yearError: '' })}
-                                            options={yearOptions}
-                                            isSearchable={true}
-                                            menuPosition="fixed"
-                                        />
-                                        {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
-                                    </div>
-                                    <div className="mt-3">
-                                        <label className="block text-sm font-medium text-gray-700">
-                                            Month <span className="text-red-500">*</span>
-                                        </label>
-                                        <Select
-                                            placeholder="Select a month"
-                                            value={state.monthSection}
-                                            onChange={(val) => setState({ monthSection: val, monthError: '' })}
-                                            options={monthOptions}
-                                            isSearchable={true}
-                                            menuPosition="fixed"
-                                        />
-                                        {state.monthError && <div className="mb-2 text-red-500">{state.monthError}</div>}
-                                    </div>
+                                <div className="mt-3">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Year <span className="text-red-500">*</span>
+                                    </label>
+                                    <Select
+                                        placeholder="Select a year"
+                                        value={state.yearSection}
+                                        onChange={(val) => setState({ yearSection: val, yearError: '' })}
+                                        options={yearOption()}
+                                        isSearchable={true}
+                                        menuPosition="fixed"
+                                    />
+                                    {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
                                 </div>
                             </div>
                             {state.files?.length > 0 && (

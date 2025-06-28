@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import axios from 'axios';
-import { API, Success, parseHTMLContent, showDeleteAlert, transformData, useSetState } from '@/utils/functions';
+import { API, Success, parseHTMLContent, showDeleteAlert, transformData, useSetState, yearOption } from '@/utils/functions';
 import { DataTable } from 'mantine-datatable';
 import Tippy from '@tippyjs/react';
 import IconPencil from '@/components/Icon/IconPencil';
@@ -99,11 +99,6 @@ const FinancialResults = () => {
                 return;
             }
 
-            if (state.monthSection == '') {
-                setState({ monthError: 'Please select month ', submitLoading: false });
-                return;
-            }
-
             for (const file of state.files) {
                 if (!file.file) {
                     setState({ errorMessage: 'Please upload a file ', submitLoading: false });
@@ -127,7 +122,7 @@ const FinancialResults = () => {
                 reference: state.reference,
                 subject: state.subject,
                 submenu: state.selectedMenu,
-                month: state.monthSection?.value,
+                // month:1,
             };
 
             const formData = new FormData();
@@ -137,7 +132,7 @@ const FinancialResults = () => {
             formData.append('year', body.year);
             formData.append('reference', body.reference);
             formData.append('subject', body.subject);
-            formData.append('month', body.month);
+            // formData.append('month', body.month);
 
             outputArray.forEach((file, index) => {
                 formData.append(`files[${index}].file`, file?.file); // Append the file
@@ -178,11 +173,6 @@ const FinancialResults = () => {
 
             if (state.yearSection == '') {
                 setState({ yearError: 'Please select year ', submitLoading: false });
-                return;
-            }
-
-            if (state.monthSection == '') {
-                setState({ monthError: 'Please select month ', submitLoading: false });
                 return;
             }
 
@@ -374,18 +364,19 @@ const FinancialResults = () => {
                 };
             });
 
-            const find = monthOptions?.find((item) => item?.value == row?.month);
+            const years = yearOption();
+
+            const find = years?.find((item) => item?.value == row?.year);
 
             setState({
                 isOpen: true,
                 files: fileData,
                 updateId: row?.id,
                 name: row?.title,
-                yearSection: { value: row?.year, label: row?.year },
                 reference: row?.reference,
                 subject: row?.subject,
                 uploadedFiles: fileData,
-                monthSection: find,
+                yearSection: find,
             });
         } catch (error) {
             console.log('✌️error --->', error);
@@ -444,7 +435,7 @@ const FinancialResults = () => {
                         placeholder="Filter by year"
                         value={state.filterYear}
                         onChange={(val) => setState({ filterYear: val, yearError: '' })}
-                        options={yearOptions}
+                        options={yearOption()}
                         isSearchable={true}
                         isClearable={true}
                     />
@@ -474,16 +465,24 @@ const FinancialResults = () => {
                         fetching={state.tableLoading}
                         customLoader={<Loader />}
                         columns={[
-                            { accessor: 'title', title: 'Title' },
+                            {
+                                accessor: 'title',
+                                title: 'Title',
+                                render: (row) => (
+                                    <div className="flex items-center">
+                                        <div className="line-clamp-2 break-words">{row.title}</div>
+                                    </div>
+                                ),
+                            },
 
                             {
-                                accessor: 'month',
-                                render: (row) => {
-                                    const find = monthOptions?.find((item) => item?.value == row?.month);
-                                    return <div>{find?.label}</div>;
-                                },
+                                accessor: 'year',
+                                render: (row) => (
+                                    <div className="flex items-center">
+                                        <div className="line-clamp-2 break-words">{`${row.year} - ${row.year + 1}`}</div>
+                                    </div>
+                                ),
                             },
-                            { accessor: 'year' },
 
                             {
                                 accessor: 'link',
@@ -619,35 +618,19 @@ const FinancialResults = () => {
                                         onChange={(e) => setState({ subject: e.target.value })}
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="mt-3">
-                                        <label className="block text-sm font-medium text-gray-700">
-                                            Year <span className="text-red-500">*</span>
-                                        </label>
-                                        <Select
-                                            placeholder="Select a year"
-                                            value={state.yearSection}
-                                            onChange={(val) => setState({ yearSection: val, yearError: '' })}
-                                            options={yearOptions}
-                                            isSearchable={true}
-                                            menuPosition="fixed"
-                                        />
-                                        {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
-                                    </div>
-                                    <div className="mt-3">
-                                        <label className="block text-sm font-medium text-gray-700">
-                                            Month <span className="text-red-500">*</span>
-                                        </label>
-                                        <Select
-                                            placeholder="Select a month"
-                                            value={state.monthSection}
-                                            onChange={(val) => setState({ monthSection: val, monthError: '' })}
-                                            options={monthOptions}
-                                            isSearchable={true}
-                                            menuPosition="fixed"
-                                        />
-                                        {state.monthError && <div className="mb-2 text-red-500">{state.monthError}</div>}
-                                    </div>
+                                <div className="mt-3">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Year <span className="text-red-500">*</span>
+                                    </label>
+                                    <Select
+                                        placeholder="Select a year"
+                                        value={state.yearSection}
+                                        onChange={(val) => setState({ yearSection: val, yearError: '' })}
+                                        options={yearOption()}
+                                        isSearchable={true}
+                                        menuPosition="fixed"
+                                    />
+                                    {state.yearError && <div className="mb-2 text-red-500">{state.yearError}</div>}
                                 </div>
                             </div>
                             {state.files?.length > 0 && (
