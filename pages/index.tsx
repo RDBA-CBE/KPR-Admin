@@ -29,7 +29,7 @@ const TailwindCards = () => {
     const getSubMenu = async () => {
         try {
             setState({ loading: true });
-            const res: any = await Models.auth.sub_menu(menuId);
+            const res: any = await Models.auth.sub_menu(1);
             setState({ menuList: res?.results, loading: false });
         } catch (error) {
             setState({ loading: false });
