@@ -40,7 +40,7 @@ const RegulationOfTheLodr = () => {
         pageSize: 10,
         reference: '',
         subject: '',
-        filterYear: '',
+        filterYear: { value: 2025, label: '2025 - 2026' },
         monthError: '',
         monthSection: '',
     });
@@ -52,9 +52,17 @@ const RegulationOfTheLodr = () => {
     const getTableList = async () => {
         try {
             setState({ tableLoading: true });
-            const body = {
-                year: state.filterYear?.value,
-            };
+            let body = {};
+
+            if (state.filterYear) {
+                body = {
+                    year: state.filterYear?.value,
+                };
+            } else {
+                body = {
+                    year: 2025,
+                };
+            }
             const res: any = await Models.auth.main_document_list(menuId, body, 1);
             setState({ tableLoading: false, tableList: res?.results });
         } catch (error) {

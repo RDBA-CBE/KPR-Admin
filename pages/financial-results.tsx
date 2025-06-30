@@ -51,7 +51,7 @@ const FinancialResults = () => {
         tableList: [],
         updateId: '',
         uploadedFiles: [],
-        filterYear: '',
+        filterYear: { value: 2025, label: '2025 - 2026' },
 
         currentPage: 1,
         totalRecords: 0,
@@ -328,11 +328,18 @@ const FinancialResults = () => {
     const getTableList = async (page) => {
         try {
             setState({ tableLoading: true });
-            const body = {
-                year: state.filterYear?.value,
-            };
+
+            let body = {};
+            if (state.filterYear) {
+                body = {
+                    year: state.filterYear?.value,
+                };
+            } else {
+                body = {
+                    year: 2025,
+                };
+            }
             const res: any = await Models.auth.document_list(state.selectedMenu, body, page);
-            console.log('✌️res --->', res);
             setState({
                 tableLoading: false,
                 tableList: res?.results,

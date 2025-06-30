@@ -67,7 +67,7 @@ const auth = {
         return promise;
     },
 
-    document_list: (id: any, body,page:any) => {
+    document_list: (id: any, body: any, page: any) => {
         let promise = new Promise((resolve, reject) => {
             let url = `documents/?page=${page}&submenu=${id}`;
             if (body.year) {
@@ -264,7 +264,7 @@ const auth = {
         return promise;
     },
 
-    main_document_list: (id: any, body: any,page:any) => {
+    main_document_list: (id: any, body: any, page: any) => {
         let promise = new Promise((resolve, reject) => {
             let url = `documents/?page=${page}&main_menu=${id}`;
             if (body.year) {
