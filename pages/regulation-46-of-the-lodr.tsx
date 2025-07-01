@@ -40,7 +40,9 @@ const RegulationOfTheLodr = () => {
         pageSize: 10,
         reference: '',
         subject: '',
-        filterYear: { value: 2025, label: '2025 - 2026' },
+        // filterYear: { value: 2025, label: '2025 - 2026' },
+        filterYear: '',
+
         monthError: '',
         monthSection: '',
     });
@@ -54,15 +56,15 @@ const RegulationOfTheLodr = () => {
             setState({ tableLoading: true });
             let body = {};
 
-            if (state.filterYear) {
-                body = {
-                    year: state.filterYear?.value,
-                };
-            } else {
-                body = {
-                    year: 2025,
-                };
-            }
+            // if (state.filterYear) {
+            body = {
+                year: state.filterYear?.value,
+            };
+            // } else {
+            //     body = {
+            //         year: 2025,
+            //     };
+            // }
             const res: any = await Models.auth.main_document_list(menuId, body, 1);
             setState({ tableLoading: false, tableList: res?.results });
         } catch (error) {
