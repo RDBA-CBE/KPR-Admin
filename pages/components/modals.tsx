@@ -9,7 +9,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import { Navigation, Pagination } from 'swiper';
+import { Navigation, Pagination } from 'swiper/modules';
 import { setPageTitle } from '../../store/themeConfigSlice';
 import IconBell from '@/components/Icon/IconBell';
 import IconCode from '@/components/Icon/IconCode';
