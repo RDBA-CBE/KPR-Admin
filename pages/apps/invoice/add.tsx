@@ -25,6 +25,7 @@ const Add = () => {
             amount: 0,
         },
     ]);
+    
 
     const addItem = () => {
         let maxId = 0;
