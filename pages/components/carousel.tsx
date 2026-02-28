@@ -3,7 +3,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import { Navigation, Pagination, Autoplay } from 'swiper';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import { useEffect, useState } from 'react';
 import CodeHighlight from '../../components/Highlight';
 import { useDispatch, useSelector } from 'react-redux';
